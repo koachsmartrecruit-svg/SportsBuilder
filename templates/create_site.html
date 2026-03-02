@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block title %}Create Site — SportsBuilder{% endblock %}
+{% block content %}
+<div class="form-page">
+  <div class="form-page-header">
+    <a href="{{ url_for('dashboard') }}" class="back-link">← Back</a>
+    <h1>Create New Website</h1>
+    <p>Customize every aspect of your site.</p>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" class="site-form">
+
+    <div class="form-section">
+      <h2>📋 Basic Info</h2>
+      <div class="form-group">
+        <label>Site Name *</label>
+        <input type="text" name="site_name" required placeholder="e.g. Mumbai Football Academy">
+        <small>This becomes your URL: /site/mumbai-football-academy</small>
+      </div>
+      <div class="form-group">
+        <label>Tagline</label>
+        <input type="text" name="tagline" placeholder="e.g. Shaping Champions Since 2010">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" rows="3" placeholder="Tell visitors about your academy, club, or gym..."></textarea>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>🎨 Template & Design</h2>
+      <div class="template-picker">
+        {% for key, tmpl in templates.items() %}
+        <label class="template-option">
+          <input type="radio" name="template_name" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+          <div class="template-card">
+            <span class="t-icon">{{ tmpl.icon }}</span>
+            <strong>{{ tmpl.label }}</strong>
+            <small>{{ tmpl.desc }}</small>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+      
+      <div class="form-group">
+        <label>Font Family</label>
+        <select name="font_family">
+          <option value="Inter">Inter (Modern)</option>
+          <option value="DM Sans">DM Sans (Clean)</option>
+          <option value="Poppins">Poppins (Friendly)</option>
+          <option value="Roboto">Roboto (Classic)</option>
+          <option value="Bebas Neue">Bebas Neue (Bold)</option>
+        </select>
+      </div>
+      
+      <div class="color-grid">
+        <div class="form-group">
+          <label>Primary Color</label>
+          <input type="color" name="primary_color" value="#e63946">
+        </div>
+        <div class="form-group">
+          <label>Secondary Color</label>
+          <input type="color" name="secondary_color" value="#1d3557">
+        </div>
+        <div class="form-group">
+          <label>Accent Color</label>
+          <input type="color" name="accent_color" value="#f59e0b">
+        </div>
+        <div class="form-group">
+          <label>Background</label>
+          <input type="color" name="background_color" value="#ffffff">
+        </div>
+        <div class="form-group">
+          <label>Text Color</label>
+          <input type="color" name="text_color" value="#1a1a2e">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>🖼️ Images</h2>
+      <div class="form-group">
+        <label>Logo</label>
+        <input type="file" name="logo" accept="image/*" class="file-input">
+        <small>Your brand logo (appears in navigation)</small>
+      </div>
+      <div class="form-group">
+        <label>Hero Image</label>
+        <input type="file" name="hero_image" accept="image/*" class="file-input">
+        <small>Main banner image</small>
+      </div>
+      <div class="form-group">
+        <label>Gallery Images (select multiple)</label>
+        <input type="file" name="gallery_images" accept="image/*" multiple class="file-input">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>🎯 Hero Section</h2>
+      <div class="form-group">
+        <label>Hero Title</label>
+        <input type="text" name="hero_title" placeholder="e.g. Find Your Dream Coaching Job">
+        <small>Leave empty to use site name</small>
+      </div>
+      <div class="form-group">
+        <label>Hero Subtitle</label>
+        <textarea name="hero_subtitle" rows="2" placeholder="A compelling subtitle for your hero section"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>CTA Button Text</label>
+          <input type="text" name="cta_button_text" value="Get Started" placeholder="Get Started">
+        </div>
+        <div class="form-group">
+          <label>CTA Button URL</label>
+          <input type="text" name="cta_button_url" value="#contact" placeholder="#contact">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>📊 Stats Section</h2>
+      <div class="form-check">
+        <input type="checkbox" name="show_stats" id="show_stats" checked>
+        <label for="show_stats">Show stats section</label>
+      </div>
+      <div class="stats-grid">
+        <div class="form-group">
+          <label>Stat 1 Number</label>
+          <input type="text" name="stat1_number" placeholder="500+">
+        </div>
+        <div class="form-group">
+          <label>Stat 1 Label</label>
+          <input type="text" name="stat1_label" placeholder="Athletes Trained">
+        </div>
+        <div class="form-group">
+          <label>Stat 2 Number</label>
+          <input type="text" name="stat2_number" placeholder="15+">
+        </div>
+        <div class="form-group">
+          <label>Stat 2 Label</label>
+          <input type="text" name="stat2_label" placeholder="Years Experience">
+        </div>
+        <div class="form-group">
+          <label>Stat 3 Number</label>
+          <input type="text" name="stat3_number" placeholder="50+">
+        </div>
+        <div class="form-group">
+          <label>Stat 3 Label</label>
+          <input type="text" name="stat3_label" placeholder="Championships">
+        </div>
+        <div class="form-group">
+          <label>Stat 4 Number</label>
+          <input type="text" name="stat4_number" placeholder="20+">
+        </div>
+        <div class="form-group">
+          <label>Stat 4 Label</label>
+          <input type="text" name="stat4_label" placeholder="Expert Coaches">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>ℹ️ About Section</h2>
+      <div class="form-group">
+        <label>About Title</label>
+        <input type="text" name="about_title" value="About Us" placeholder="About Us">
+      </div>
+      <div class="form-group">
+        <label>About Text</label>
+        <textarea name="about_text" rows="4" placeholder="Tell your story..."></textarea>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>✨ Features Section</h2>
+      <div class="form-check">
+        <input type="checkbox" name="show_features" id="show_features" checked>
+        <label for="show_features">Show features section</label>
+      </div>
+      <div class="feature-group">
+        <h4>Feature 1</h4>
+        <div class="form-row">
+          <div class="form-group" style="flex: 0 0 80px;">
+            <label>Icon</label>
+            <input type="text" name="feature1_icon" value="🎯" placeholder="🎯">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Title</label>
+            <input type="text" name="feature1_title" placeholder="Feature Title">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="feature1_text" rows="2" placeholder="Describe this feature..."></textarea>
+        </div>
+      </div>
+
+      <div class="feature-group">
+        <h4>Feature 2</h4>
+        <div class="form-row">
+          <div class="form-group" style="flex: 0 0 80px;">
+            <label>Icon</label>
+            <input type="text" name="feature2_icon" value="⚡" placeholder="⚡">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Title</label>
+            <input type="text" name="feature2_title" placeholder="Feature Title">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="feature2_text" rows="2" placeholder="Describe this feature..."></textarea>
+        </div>
+      </div>
+
+      <div class="feature-group">
+        <h4>Feature 3</h4>
+        <div class="form-row">
+          <div class="form-group" style="flex: 0 0 80px;">
+            <label>Icon</label>
+            <input type="text" name="feature3_icon" value="🏆" placeholder="🏆">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Title</label>
+            <input type="text" name="feature3_title" placeholder="Feature Title">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="feature3_text" rows="2" placeholder="Describe this feature..."></textarea>
+        </div>
+      </div>
+
+      <div class="feature-group">
+        <h4>Feature 4</h4>
+        <div class="form-row">
+          <div class="form-group" style="flex: 0 0 80px;">
+            <label>Icon</label>
+            <input type="text" name="feature4_icon" value="💪" placeholder="💪">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Title</label>
+            <input type="text" name="feature4_title" placeholder="Feature Title">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="feature4_text" rows="2" placeholder="Describe this feature..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>📞 Contact Info</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact Email</label>
+          <input type="email" name="contact_email" placeholder="info@youracademy.com">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" name="phone" placeholder="+91 99999 00000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>WhatsApp Number</label>
+          <input type="tel" name="whatsapp" placeholder="+91 99999 00000">
+        </div>
+        <div class="form-group">
+          <label>Address</label>
+          <input type="text" name="address" placeholder="123 Sports Complex, Mumbai">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>🌐 Social Media</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Facebook URL</label>
+          <input type="url" name="facebook" placeholder="https://facebook.com/...">
+        </div>
+        <div class="form-group">
+          <label>Instagram URL</label>
+          <input type="url" name="instagram" placeholder="https://instagram.com/...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Twitter/X URL</label>
+          <input type="url" name="twitter" placeholder="https://twitter.com/...">
+        </div>
+        <div class="form-group">
+          <label>LinkedIn URL</label>
+          <input type="url" name="linkedin" placeholder="https://linkedin.com/...">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>YouTube URL</label>
+        <input type="url" name="youtube" placeholder="https://youtube.com/...">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>⚙️ Settings</h2>
+      <div class="form-check">
+        <input type="checkbox" name="is_published" id="is_published" checked>
+        <label for="is_published">Publish immediately</label>
+      </div>
+      <div class="form-check">
+        <input type="checkbox" name="show_gallery" id="show_gallery" checked>
+        <label for="show_gallery">Show gallery section</label>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('dashboard') }}" class="btn-outline">Cancel</a>
+      <button type="submit" class="btn-primary">Create Site</button>
+    </div>
+  </form>
+</div>
+
+<style>
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.feature-group {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+.feature-group h4 {
+  margin-bottom: 1rem;
+  color: #495057;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+</style>
+{% endblock %}

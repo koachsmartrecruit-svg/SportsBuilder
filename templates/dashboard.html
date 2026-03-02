@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SportsBuilder{% endblock %}
+{% block content %}
+<div class="dashboard">
+  <div class="dashboard-header">
+    <div>
+      <h1>My Websites</h1>
+      <p>Manage all your sports websites from here.</p>
+    </div>
+    <a href="{{ url_for('create_site') }}" class="btn-primary">+ Create New Site</a>
+  </div>
+
+  {% if sites %}
+  <div class="sites-grid">
+    {% for site in sites %}
+    <div class="site-card">
+      <div class="site-card-hero" style="background: linear-gradient(135deg, {{ site.primary_color }}, {{ site.secondary_color }});">
+        {% if site.hero_image %}
+        <img src="{{ url_for('static', filename=site.hero_image) }}" alt="{{ site.site_name }}">
+        {% else %}
+        <span class="site-card-icon">{{ templates[site.template_name]['icon'] }}</span>
+        {% endif %}
+        <span class="site-card-badge">{{ templates[site.template_name]['label'] }}</span>
+        {% if site.is_published %}
+        <span class="site-card-status site-card-status-published">Published</span>
+        {% else %}
+        <span class="site-card-status site-card-status-draft">Draft</span>
+        {% endif %}
+      </div>
+      <div class="site-card-body">
+        <h3>{{ site.site_name }}</h3>
+        <p class="site-slug">{{ request.url_root.rstrip('/') }}/site/{{ site.slug }}</p>
+        {% if site.description %}
+        <p class="site-desc">{{ site.description[:80] }}{% if site.description|length > 80 %}…{% endif %}</p>
+        {% endif %}
+        <div class="site-card-actions">
+          <a href="{{ url_for('preview', slug=site.slug) }}" class="btn-outline" target="_blank">Preview</a>
+          {% if site.is_published %}
+          <a href="{{ url_for('site', slug=site.slug) }}" class="btn-outline" target="_blank">View</a>
+          {% endif %}
+          <button type="button" class="btn-secondary" data-copy="{{ request.url_root.rstrip('/') }}{% if site.is_published %}/site/{% else %}/preview/{% endif %}{{ site.slug }}">Copy Link</button>
+          <a href="{{ url_for('edit_site', site_id=site.id) }}" class="btn-secondary">Edit</a>
+          <form method="POST" action="{{ url_for('delete_site', site_id=site.id) }}" onsubmit="return confirm('Delete this site permanently?')">
+            <button type="submit" class="btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🏟️</div>
+    <h2>No websites yet</h2>
+    <p>Create your first sports website in minutes.</p>
+    <a href="{{ url_for('create_site') }}" class="btn-primary">Get Started →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

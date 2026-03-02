@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ site.site_name }} — SportsBuilder{% endblock %}
+{% block content %}
+<div class="form-page">
+  <div class="form-page-header">
+    <a href="{{ url_for('dashboard') }}" class="back-link">← Back to Dashboard</a>
+    <h1>Edit: {{ site.site_name }}</h1>
+    <div class="site-link-block">
+      <div class="site-link-label">Links</div>
+      <div class="site-link-row">
+        <input class="site-link-input" type="text" value="{{ request.url_root.rstrip('/') }}/site/{{ site.slug }}" readonly>
+        <button type="button" class="btn-secondary" data-copy="{{ request.url_root.rstrip('/') }}/site/{{ site.slug }}">Copy</button>
+        {% if site.is_published %}
+        <a href="{{ url_for('site', slug=site.slug) }}" class="btn-outline" target="_blank">Open</a>
+        {% endif %}
+        <a href="{{ url_for('preview', slug=site.slug) }}" class="btn-outline" target="_blank">Preview</a>
+      </div>
+      {% if not site.is_published %}
+      <small class="muted">This site is currently Draft. Use Preview to view it.</small>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" class="site-form">
+
+    <div class="form-section">
+      <h2>Basic Info</h2>
+      <div class="form-group">
+        <label>Site Name *</label>
+        <input type="text" name="site_name" required value="{{ site.site_name }}">
+      </div>
+      <div class="form-group">
+        <label>Tagline</label>
+        <input type="text" name="tagline" value="{{ site.tagline or '' }}">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" rows="4">{{ site.description or '' }}</textarea>
+      </div>
+      <div class="form-check">
+        <input type="checkbox" name="is_published" id="is_published" {% if site.is_published %}checked{% endif %}>
+        <label for="is_published">Published (turn off to hide the public link)</label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>Template & Colors</h2>
+      <div class="template-picker">
+        {% for key, tmpl in templates.items() %}
+        <label class="template-option">
+          <input type="radio" name="template_name" value="{{ key }}" {% if site.template_name == key %}checked{% endif %}>
+          <div class="template-card">
+            <span class="t-icon">{{ tmpl.icon }}</span>
+            <strong>{{ tmpl.label }}</strong>
+            <small>{{ tmpl.desc }}</small>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="color-row">
+        <div class="form-group">
+          <label>Primary Color</label>
+          <input type="color" name="primary_color" value="{{ site.primary_color }}">
+        </div>
+        <div class="form-group">
+          <label>Secondary Color</label>
+          <input type="color" name="secondary_color" value="{{ site.secondary_color }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>Images</h2>
+      {% if site.hero_image %}
+      <div class="current-image">
+        <img src="{{ url_for('static', filename=site.hero_image) }}" alt="Current hero">
+        <small>Current hero image</small>
+      </div>
+      <div class="form-check">
+        <input type="checkbox" name="remove_hero_image" id="remove_hero_image">
+        <label for="remove_hero_image">Remove current hero image</label>
+      </div>
+      {% endif %}
+      <div class="form-group">
+        <label>Replace Hero Image</label>
+        <input type="file" name="hero_image" accept="image/*" class="file-input">
+      </div>
+
+      {% if site.gallery %}
+      <div class="gallery-grid">
+        {% for img in site.gallery %}
+        <div class="gallery-thumb">
+          <img src="{{ url_for('static', filename=img.image_path) }}" alt="Gallery">
+          <button type="submit" class="btn-remove" form="delete-gallery-{{ img.id }}" onclick="return confirm('Remove this image?')">&times;</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label>Add Gallery Images</label>
+        <input type="file" name="gallery_images" accept="image/*" multiple class="file-input">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>Contact Info</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact Email</label>
+          <input type="email" name="contact_email" value="{{ site.contact_email or '' }}">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" name="phone" value="{{ site.phone or '' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <input type="text" name="address" value="{{ site.address or '' }}">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>Social Media</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Facebook URL</label>
+          <input type="url" name="facebook" value="{{ site.facebook or '' }}">
+        </div>
+        <div class="form-group">
+          <label>Instagram URL</label>
+          <input type="url" name="instagram" value="{{ site.instagram or '' }}">
+        </div>
+        <div class="form-group">
+          <label>Twitter/X URL</label>
+          <input type="url" name="twitter" value="{{ site.twitter or '' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('preview', slug=site.slug) }}" class="btn-outline" target="_blank">Preview</a>
+      {% if site.is_published %}
+      <a href="{{ url_for('site', slug=site.slug) }}" class="btn-outline" target="_blank">View Public</a>
+      {% endif %}
+      <button type="submit" class="btn-primary">Save Changes</button>
+    </div>
+  </form>
+
+  {% if site.gallery %}
+    {% for img in site.gallery %}
+      <form id="delete-gallery-{{ img.id }}" method="POST" action="{{ url_for('delete_gallery', img_id=img.id) }}"></form>
+    {% endfor %}
+  {% endif %}
+
+  <div class="danger-zone">
+    <h2>Danger zone</h2>
+    <p class="muted">Delete the site and all its data. This cannot be undone.</p>
+    <form method="POST" action="{{ url_for('delete_site', site_id=site.id) }}" onsubmit="return confirm('Delete this site permanently?')">
+      <button type="submit" class="btn-danger">Delete Site</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
