@@ -116,6 +116,66 @@ def migrate():
                 print("  ✓ Added index on websites.user_id")
             except Exception as e:
                 print(f"  ⊙ Index already exists or error: {e}")
+            
+            # Add SEO fields to websites
+            print("\n📊 Adding SEO fields...")
+            seo_fields = [
+                ("meta_title", "ALTER TABLE websites ADD COLUMN meta_title VARCHAR(200)"),
+                ("meta_description", "ALTER TABLE websites ADD COLUMN meta_description TEXT"),
+                ("meta_keywords", "ALTER TABLE websites ADD COLUMN meta_keywords VARCHAR(500)"),
+                ("og_image", "ALTER TABLE websites ADD COLUMN og_image VARCHAR(300)"),
+            ]
+            
+            for field, sql in seo_fields:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                    print(f"  ✓ Added {field}")
+                except Exception as e:
+                    if "duplicate column" in str(e).lower():
+                        print(f"  ⊙ {field} already exists")
+                    else:
+                        print(f"  ✗ Error adding {field}: {e}")
+            
+            # Create contact submissions table
+            print("\n📊 Creating contact_submissions table...")
+            try:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS contact_submissions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        website_id INTEGER NOT NULL,
+                        name VARCHAR(200) NOT NULL,
+                        email VARCHAR(200) NOT NULL,
+                        phone VARCHAR(50),
+                        message TEXT NOT NULL,
+                        status VARCHAR(20) DEFAULT 'new',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE
+                    )
+                """))
+                conn.commit()
+                print("  ✓ Created contact_submissions table")
+            except Exception as e:
+                print(f"  ⊙ Table already exists or error: {e}")
+            
+            # Create site analytics table
+            print("\n📊 Creating site_analytics table...")
+            try:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS site_analytics (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        website_id INTEGER NOT NULL UNIQUE,
+                        page_views INTEGER DEFAULT 0,
+                        unique_visitors INTEGER DEFAULT 0,
+                        last_viewed DATETIME,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE
+                    )
+                """))
+                conn.commit()
+                print("  ✓ Created site_analytics table")
+            except Exception as e:
+                print(f"  ⊙ Table already exists or error: {e}")
         
         print("\n✅ Migration completed successfully!")
         print("\n📋 Summary:")

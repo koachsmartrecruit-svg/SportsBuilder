@@ -547,6 +547,105 @@ def preview(slug):
     return render_template(template_path, site=website)
 
 
+# ── Site Admin Dashboard ──────────────────────────────────────────────────────
+@app.route("/site/<int:site_id>/admin")
+@login_required
+def site_admin(site_id):
+    """Shopify-like admin dashboard for each website"""
+    from models import ContactSubmission, SiteAnalytics
+    
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    submissions = ContactSubmission.query.filter_by(website_id=site_id).order_by(ContactSubmission.created_at.desc()).all()
+    analytics = SiteAnalytics.query.filter_by(website_id=site_id).first()
+    
+    return render_template("site_admin.html", site=site, submissions=submissions, analytics=analytics)
+
+
+@app.route("/site/<int:site_id>/admin/content", methods=["POST"])
+@login_required
+def update_site_content(site_id):
+    """Update site content"""
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    
+    site.hero_title = request.form.get("hero_title", "").strip()
+    site.hero_subtitle = request.form.get("hero_subtitle", "").strip()
+    site.cta_button_text = request.form.get("cta_button_text", "Get Started")
+    site.cta_button_url = request.form.get("cta_button_url", "#contact")
+    site.about_title = request.form.get("about_title", "About Us")
+    site.about_text = request.form.get("about_text", "").strip()
+    site.contact_email = request.form.get("contact_email", "").strip()
+    site.phone = request.form.get("phone", "").strip()
+    site.whatsapp = request.form.get("whatsapp", "").strip()
+    site.address = request.form.get("address", "").strip()
+    
+    db.session.commit()
+    flash("Content updated successfully!", "success")
+    return redirect(url_for("site_admin", site_id=site_id))
+
+
+@app.route("/site/<int:site_id>/admin/design", methods=["POST"])
+@login_required
+def update_site_design(site_id):
+    """Update site design"""
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    
+    site.primary_color = request.form.get("primary_color", site.primary_color)
+    site.secondary_color = request.form.get("secondary_color", site.secondary_color)
+    site.accent_color = request.form.get("accent_color", site.accent_color)
+    site.font_family = request.form.get("font_family", site.font_family)
+    
+    db.session.commit()
+    flash("Design updated successfully!", "success")
+    return redirect(url_for("site_admin", site_id=site_id))
+
+
+@app.route("/site/<int:site_id>/admin/seo", methods=["POST"])
+@login_required
+def update_site_seo(site_id):
+    """Update SEO settings"""
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    
+    site.meta_title = request.form.get("meta_title", "").strip()
+    site.meta_description = request.form.get("meta_description", "").strip()
+    site.meta_keywords = request.form.get("meta_keywords", "").strip()
+    
+    db.session.commit()
+    flash("SEO settings updated successfully!", "success")
+    return redirect(url_for("site_admin", site_id=site_id))
+
+
+@app.route("/site/<int:site_id>/admin/settings", methods=["POST"])
+@login_required
+def update_site_settings(site_id):
+    """Update site settings"""
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    
+    site.is_published = request.form.get("is_published") == "on"
+    site.show_stats = request.form.get("show_stats") == "on"
+    site.show_features = request.form.get("show_features") == "on"
+    site.show_gallery = request.form.get("show_gallery") == "on"
+    
+    db.session.commit()
+    flash("Settings updated successfully!", "success")
+    return redirect(url_for("site_admin", site_id=site_id))
+
+
+@app.route("/submission/<int:submission_id>/mark-read", methods=["POST"])
+@login_required
+def mark_submission_read(submission_id):
+    """Mark submission as read"""
+    from models import ContactSubmission
+    
+    submission = ContactSubmission.query.get_or_404(submission_id)
+    site = Website.query.filter_by(id=submission.website_id, user_id=current_user.id).first_or_404()
+    
+    submission.status = "read"
+    db.session.commit()
+    
+    flash("Submission marked as read", "success")
+    return redirect(url_for("site_admin", site_id=site.id))
+
+
 # ── API Routes ────────────────────────────────────────────────────────────────
 @app.route("/api/check-slug/<slug>")
 @login_required

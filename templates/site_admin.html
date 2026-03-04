@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+{% block title %}{{ site.site_name }} - Admin Dashboard{% endblock %}
+{% block content %}
+<div class="admin-dashboard">
+  <div class="admin-header">
+    <div class="admin-header-content">
+      <div>
+        <a href="{{ url_for('dashboard') }}" class="back-link">← Back to Sites</a>
+        <h1>{{ site.site_name }}</h1>
+        <p class="admin-subtitle">Manage your website content and settings</p>
+      </div>
+      <div class="admin-header-actions">
+        <a href="{{ url_for('preview', slug=site.slug) }}" class="btn-outline" target="_blank">
+          👁️ Preview
+        </a>
+        <a href="{{ url_for('site', slug=site.slug) }}" class="btn-primary" target="_blank">
+          🌐 View Live Site
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-tabs">
+    <button class="admin-tab active" data-tab="overview">📊 Overview</button>
+    <button class="admin-tab" data-tab="content">✏️ Content</button>
+    <button class="admin-tab" data-tab="design">🎨 Design</button>
+    <button class="admin-tab" data-tab="submissions">📬 Submissions</button>
+    <button class="admin-tab" data-tab="seo">🔍 SEO</button>
+    <button class="admin-tab" data-tab="settings">⚙️ Settings</button>
+  </div>
+
+  <!-- Overview Tab -->
+  <div class="admin-tab-content active" id="overview">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👁️</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ analytics.page_views if analytics else 0 }}</div>
+          <div class="stat-label">Page Views</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ analytics.unique_visitors if analytics else 0 }}</div>
+          <div class="stat-label">Unique Visitors</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📬</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ submissions|length }}</div>
+          <div class="stat-label">Form Submissions</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🖼️</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ site.gallery|length }}</div>
+          <div class="stat-label">Gallery Images</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <div class="admin-card">
+        <h3>Recent Activity</h3>
+        <div class="activity-list">
+          {% if analytics and analytics.last_viewed %}
+          <div class="activity-item">
+            <span class="activity-icon">👁️</span>
+            <div>
+              <div class="activity-title">Last viewed</div>
+              <div class="activity-time">{{ analytics.last_viewed.strftime('%B %d, %Y at %I:%M %p') }}</div>
+            </div>
+          </div>
+          {% endif %}
+          <div class="activity-item">
+            <span class="activity-icon">✅</span>
+            <div>
+              <div class="activity-title">Site created</div>
+              <div class="activity-time">{{ site.created_at.strftime('%B %d, %Y at %I:%M %p') }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions">
+          <a href="#" class="quick-action-btn" onclick="switchTab('content')">
+            <span class="quick-action-icon">✏️</span>
+            <span>Edit Content</span>
+          </a>
+          <a href="#" class="quick-action-btn" onclick="switchTab('design')">
+            <span class="quick-action-icon">🎨</span>
+            <span>Change Design</span>
+          </a>
+          <a href="#" class="quick-action-btn" onclick="switchTab('submissions')">
+            <span class="quick-action-icon">📬</span>
+            <span>View Messages</span>
+          </a>
+          <a href="{{ url_for('edit_site', site_id=site.id) }}" class="quick-action-btn">
+            <span class="quick-action-icon">⚙️</span>
+            <span>Advanced Settings</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Tab -->
+  <div class="admin-tab-content" id="content">
+    <form method="POST" action="{{ url_for('update_site_content', site_id=site.id) }}" class="admin-form">
+      <div class="admin-card">
+        <h3>Hero Section</h3>
+        <div class="form-group">
+          <label>Hero Title</label>
+          <input type="text" name="hero_title" value="{{ site.hero_title or site.site_name }}" placeholder="Main headline">
+        </div>
+        <div class="form-group">
+          <label>Hero Subtitle</label>
+          <textarea name="hero_subtitle" rows="2" placeholder="Supporting text">{{ site.hero_subtitle }}</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>CTA Button Text</label>
+            <input type="text" name="cta_button_text" value="{{ site.cta_button_text or 'Get Started' }}">
+          </div>
+          <div class="form-group">
+            <label>CTA Button URL</label>
+            <input type="text" name="cta_button_url" value="{{ site.cta_button_url or '#contact' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3>About Section</h3>
+        <div class="form-group">
+          <label>Section Title</label>
+          <input type="text" name="about_title" value="{{ site.about_title or 'About Us' }}">
+        </div>
+        <div class="form-group">
+          <label>About Text</label>
+          <textarea name="about_text" rows="4" placeholder="Tell your story...">{{ site.about_text }}</textarea>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3>Contact Information</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="contact_email" value="{{ site.contact_email }}">
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" name="phone" value="{{ site.phone }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>WhatsApp</label>
+            <input type="tel" name="whatsapp" value="{{ site.whatsapp }}">
+          </div>
+          <div class="form-group">
+            <label>Address</label>
+            <input type="text" name="address" value="{{ site.address }}">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">💾 Save Changes</button>
+    </form>
+  </div>
+
+  <!-- Design Tab -->
+  <div class="admin-tab-content" id="design">
+    <form method="POST" action="{{ url_for('update_site_design', site_id=site.id) }}" class="admin-form">
+      <div class="admin-card">
+        <h3>Color Scheme</h3>
+        <div class="color-picker-grid">
+          <div class="form-group">
+            <label>Primary Color</label>
+            <input type="color" name="primary_color" value="{{ site.primary_color or '#e63946' }}">
+          </div>
+          <div class="form-group">
+            <label>Secondary Color</label>
+            <input type="color" name="secondary_color" value="{{ site.secondary_color or '#1d3557' }}">
+          </div>
+          <div class="form-group">
+            <label>Accent Color</label>
+            <input type="color" name="accent_color" value="{{ site.accent_color or '#f59e0b' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3>Typography</h3>
+        <div class="form-group">
+          <label>Font Family</label>
+          <select name="font_family">
+            <option value="Inter" {% if site.font_family == 'Inter' %}selected{% endif %}>Inter (Modern)</option>
+            <option value="DM Sans" {% if site.font_family == 'DM Sans' %}selected{% endif %}>DM Sans (Clean)</option>
+            <option value="Poppins" {% if site.font_family == 'Poppins' %}selected{% endif %}>Poppins (Friendly)</option>
+            <option value="Roboto" {% if site.font_family == 'Roboto' %}selected{% endif %}>Roboto (Classic)</option>
+            <option value="Bebas Neue" {% if site.font_family == 'Bebas Neue' %}selected{% endif %}>Bebas Neue (Bold)</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">💾 Save Design</button>
+    </form>
+  </div>
+
+  <!-- Submissions Tab -->
+  <div class="admin-tab-content" id="submissions">
+    <div class="admin-card">
+      <h3>Contact Form Submissions</h3>
+      {% if submissions %}
+      <div class="submissions-list">
+        {% for submission in submissions %}
+        <div class="submission-item {% if submission.status == 'new' %}submission-new{% endif %}">
+          <div class="submission-header">
+            <div>
+              <strong>{{ submission.name }}</strong>
+              <span class="submission-email">{{ submission.email }}</span>
+            </div>
+            <div class="submission-meta">
+              <span class="submission-status status-{{ submission.status }}">{{ submission.status }}</span>
+              <span class="submission-date">{{ submission.created_at.strftime('%b %d, %Y') }}</span>
+            </div>
+          </div>
+          <div class="submission-message">{{ submission.message }}</div>
+          {% if submission.phone %}
+          <div class="submission-phone">📞 {{ submission.phone }}</div>
+          {% endif %}
+          <div class="submission-actions">
+            <a href="mailto:{{ submission.email }}" class="btn-sm">Reply</a>
+            <form method="POST" action="{{ url_for('mark_submission_read', submission_id=submission.id) }}" style="display: inline;">
+              <button type="submit" class="btn-sm btn-outline">Mark as Read</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📬</div>
+        <h4>No submissions yet</h4>
+        <p>Contact form submissions will appear here</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- SEO Tab -->
+  <div class="admin-tab-content" id="seo">
+    <form method="POST" action="{{ url_for('update_site_seo', site_id=site.id) }}" class="admin-form">
+      <div class="admin-card">
+        <h3>Search Engine Optimization</h3>
+        <div class="form-group">
+          <label>Meta Title</label>
+          <input type="text" name="meta_title" value="{{ site.meta_title or site.site_name }}" maxlength="60">
+          <small>Recommended: 50-60 characters</small>
+        </div>
+        <div class="form-group">
+          <label>Meta Description</label>
+          <textarea name="meta_description" rows="3" maxlength="160">{{ site.meta_description or site.description }}</textarea>
+          <small>Recommended: 150-160 characters</small>
+        </div>
+        <div class="form-group">
+          <label>Keywords (comma-separated)</label>
+          <input type="text" name="meta_keywords" value="{{ site.meta_keywords }}" placeholder="sports, academy, training">
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3>Social Media Preview</h3>
+        <p class="help-text">How your site appears when shared on social media</p>
+        <div class="social-preview">
+          <div class="preview-image">
+            {% if site.og_image or site.hero_image %}
+            <img src="{{ url_for('static', filename=site.og_image or site.hero_image) }}" alt="Preview">
+            {% else %}
+            <div class="preview-placeholder">🖼️</div>
+            {% endif %}
+          </div>
+          <div class="preview-content">
+            <div class="preview-title">{{ site.meta_title or site.site_name }}</div>
+            <div class="preview-description">{{ site.meta_description or site.description or 'No description' }}</div>
+            <div class="preview-url">{{ request.host_url }}site/{{ site.slug }}</div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">💾 Save SEO Settings</button>
+    </form>
+  </div>
+
+  <!-- Settings Tab -->
+  <div class="admin-tab-content" id="settings">
+    <form method="POST" action="{{ url_for('update_site_settings', site_id=site.id) }}" class="admin-form">
+      <div class="admin-card">
+        <h3>Visibility</h3>
+        <div class="form-check">
+          <input type="checkbox" name="is_published" id="is_published" {% if site.is_published %}checked{% endif %}>
+          <label for="is_published">
+            <strong>Published</strong>
+            <span class="help-text">Make this site visible to the public</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3>Section Visibility</h3>
+        <div class="form-check">
+          <input type="checkbox" name="show_stats" id="show_stats" {% if site.show_stats %}checked{% endif %}>
+          <label for="show_stats">Show Statistics Section</label>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" name="show_features" id="show_features" {% if site.show_features %}checked{% endif %}>
+          <label for="show_features">Show Features Section</label>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" name="show_gallery" id="show_gallery" {% if site.show_gallery %}checked{% endif %}>
+          <label for="show_gallery">Show Gallery Section</label>
+        </div>
+      </div>
+
+      <div class="admin-card danger-zone">
+        <h3>⚠️ Danger Zone</h3>
+        <p>Permanent actions that cannot be undone</p>
+        <a href="{{ url_for('edit_site', site_id=site.id) }}" class="btn-outline">Advanced Settings</a>
+      </div>
+
+      <button type="submit" class="btn-primary">💾 Save Settings</button>
+    </form>
+  </div>
+</div>
+
+<style>
+.admin-dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.admin-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.admin-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.admin-header h1 {
+  font-size: 2rem;
+  margin: 0.5rem 0;
+}
+
+.admin-subtitle {
+  opacity: 0.9;
+  margin: 0;
+}
+
+.admin-header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.admin-tab {
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  color: #64748b;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.admin-tab:hover {
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+.admin-tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.admin-tab-content {
+  display: none;
+}
+
+.admin-tab-content.active {
+  display: block;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.stat-label {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+}
+
+.admin-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-card h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #1e293b;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.activity-icon {
+  font-size: 1.5rem;
+}
+
+.activity-title {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.activity-time {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #1e293b;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.quick-action-btn:hover {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.quick-action-icon {
+  font-size: 1.5rem;
+}
+
+.color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.submission-item {
+  padding: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.submission-new {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.submission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.submission-email {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+.submission-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.submission-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-new {
+  background: #3b82f6;
+  color: white;
+}
+
+.status-read {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.submission-date {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.submission-message {
+  margin: 1rem 0;
+  color: #1e293b;
+}
+
+.submission-phone {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.submission-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-block;
+  background: #667eea;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-sm.btn-outline {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.social-preview {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.preview-image {
+  width: 200px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-placeholder {
+  font-size: 3rem;
+}
+
+.preview-content {
+  flex: 1;
+}
+
+.preview-title {
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.preview-description {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.preview-url {
+  color: #667eea;
+  font-size: 0.85rem;
+}
+
+.danger-zone {
+  border-color: #ef4444;
+}
+
+.danger-zone h3 {
+  color: #ef4444;
+}
+
+.help-text {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .admin-header-content {
+    flex-direction: column;
+  }
+  
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+function switchTab(tabName) {
+  event.preventDefault();
+  
+  // Update tabs
+  document.querySelectorAll('.admin-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+  
+  // Update content
+  document.querySelectorAll('.admin-tab-content').forEach(content => {
+    content.classList.remove('active');
+  });
+  document.getElementById(tabName).classList.add('active');
+}
+
+// Tab switching
+document.querySelectorAll('.admin-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const tabName = tab.dataset.tab;
+    switchTab(tabName);
+  });
+});
+</script>
+{% endblock %}

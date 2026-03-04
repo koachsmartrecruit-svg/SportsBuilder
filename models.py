@@ -113,6 +113,12 @@ class Website(db.Model):
     show_stats = db.Column(db.Boolean, default=True)
     show_features = db.Column(db.Boolean, default=True)
     
+    # SEO
+    meta_title = db.Column(db.String(200))
+    meta_description = db.Column(db.Text)
+    meta_keywords = db.Column(db.String(500))
+    og_image = db.Column(db.String(300))
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     gallery = db.relationship("Gallery", backref="website", lazy=True, cascade="all, delete-orphan")
 
@@ -123,3 +129,27 @@ class Gallery(db.Model):
     image_path = db.Column(db.String(300), nullable=False)
     caption = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class ContactSubmission(db.Model):
+    __tablename__ = "contact_submissions"
+    id = db.Column(db.Integer, primary_key=True)
+    website_id = db.Column(db.Integer, db.ForeignKey("websites.id"), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(200), nullable=False)
+    phone = db.Column(db.String(50))
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default="new")  # new, read, replied, archived
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    website = db.relationship("Website", backref=db.backref("submissions", lazy=True, cascade="all, delete-orphan"))
+
+
+class SiteAnalytics(db.Model):
+    __tablename__ = "site_analytics"
+    id = db.Column(db.Integer, primary_key=True)
+    website_id = db.Column(db.Integer, db.ForeignKey("websites.id"), nullable=False)
+    page_views = db.Column(db.Integer, default=0)
+    unique_visitors = db.Column(db.Integer, default=0)
+    last_viewed = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    website = db.relationship("Website", backref=db.backref("analytics", uselist=False, cascade="all, delete-orphan"))
