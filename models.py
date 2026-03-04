@@ -7,10 +7,34 @@ db = SQLAlchemy()
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
+    reset_token = db.Column(db.String(100), unique=True)
+    reset_token_expiry = db.Column(db.DateTime)
+    email_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
     websites = db.relationship("Website", backref="owner", lazy=True, cascade="all, delete-orphan")
+    
+    def generate_reset_token(self):
+        """Generate a secure password reset token"""
+        self.reset_token = secrets.token_urlsafe(32)
+        from datetime import timedelta
+        self.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
+        return self.reset_token
+    
+    def verify_reset_token(self, token):
+        """Verify if reset token is valid and not expired"""
+        if not self.reset_token or self.reset_token != token:
+            return False
+        if not self.reset_token_expiry or datetime.utcnow() > self.reset_token_expiry:
+            return False
+        return True
+    
+    def clear_reset_token(self):
+        """Clear reset token after use"""
+        self.reset_token = None
+        self.reset_token_expiry = None
 
 class Website(db.Model):
     __tablename__ = "websites"

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Access Denied — SportsBuilder{% endblock %}
+{% block content %}
+<div class="error-page">
+  <div class="error-content">
+    <div class="error-code">403</div>
+    <h1>Access Denied</h1>
+    <p>You don't have permission to access this resource.</p>
+    <div class="error-actions">
+      <a href="{{ url_for('dashboard') }}" class="btn-primary">Go to Dashboard</a>
+      <a href="javascript:history.back()" class="btn-outline">Go Back</a>
+    </div>
+  </div>
+</div>
+
+<style>
+.error-page {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+.error-code {
+  font-size: 8rem;
+  font-weight: 800;
+  color: #e63946;
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+.error-content h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #1a1a2e;
+}
+.error-content p {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 2rem;
+}
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+</style>
+{% endblock %}

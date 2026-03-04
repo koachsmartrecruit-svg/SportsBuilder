@@ -1,19 +1,39 @@
 import os
 import re
-from flask import Flask, render_template, redirect, url_for, request, flash, abort
+from flask import Flask, render_template, redirect, url_for, request, flash, abort, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from jinja2 import ChoiceLoader, FileSystemLoader
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, User, Website, Gallery
+from datetime import datetime
+import secrets
 
 # ── App Config ──────────────────────────────────────────────────────────────
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-in-prod")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///sportsbuilder.db")
+
+# Database configuration with PostgreSQL support
+database_url = os.environ.get("DATABASE_URL", "sqlite:///sportsbuilder.db")
+# Fix for Heroku/Render PostgreSQL URL
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
+
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
+
+# Production settings
+if os.environ.get("FLASK_ENV") == "production":
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["PERMANENT_SESSION_LIFETIME"] = 86400  # 24 hours
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
@@ -105,21 +125,38 @@ def signup():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
+        
+        # Validation
         if not email or not password:
             flash("Email and password are required.", "error")
+        elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash("Please enter a valid email address.", "error")
         elif password != confirm:
             flash("Passwords do not match.", "error")
-        elif len(password) < 6:
-            flash("Password must be at least 6 characters.", "error")
+        elif len(password) < 8:
+            flash("Password must be at least 8 characters.", "error")
         elif User.query.filter_by(email=email).first():
-            flash("Email already registered.", "error")
+            flash("Email already registered. Please login instead.", "error")
         else:
-            user = User(email=email, password_hash=generate_password_hash(password))
-            db.session.add(user)
-            db.session.commit()
-            login_user(user)
-            flash("Welcome! Your account has been created.", "success")
-            return redirect(url_for("dashboard"))
+            try:
+                user = User(email=email, password_hash=generate_password_hash(password, method='pbkdf2:sha256'))
+                db.session.add(user)
+                db.session.commit()
+                login_user(user)
+                
+                # Send welcome email (optional - requires email_service.py)
+                try:
+                    from email_service import send_welcome_email
+                    send_welcome_email(email, email.split('@')[0])
+                except ImportError:
+                    pass
+                
+                flash("Welcome! Your account has been created.", "success")
+                return redirect(url_for("dashboard"))
+            except Exception as e:
+                db.session.rollback()
+                flash("An error occurred. Please try again.", "error")
+                print(f"Signup error: {e}")
     return render_template("signup.html")
 
 
@@ -132,6 +169,10 @@ def login():
         password = request.form.get("password", "")
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password_hash, password):
+            # Update last login
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
             login_user(user, remember=request.form.get("remember"))
             flash("Welcome back!", "success")
             return redirect(request.args.get("next") or url_for("dashboard"))
@@ -145,6 +186,70 @@ def logout():
     logout_user()
     flash("You have been logged out.", "info")
     return redirect(url_for("login"))
+
+
+# ── Password Reset ────────────────────────────────────────────────────────────
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+    
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            token = user.generate_reset_token()
+            db.session.commit()
+            
+            # Send reset email
+            try:
+                from email_service import send_password_reset_email
+                send_password_reset_email(email, token)
+                flash("Password reset instructions have been sent to your email.", "success")
+            except ImportError:
+                # Fallback: show token in flash (development only)
+                flash(f"Reset link: {url_for('reset_password', token=token, _external=True)}", "info")
+        else:
+            # Don't reveal if email exists (security)
+            flash("If that email exists, password reset instructions have been sent.", "success")
+        
+        return redirect(url_for("login"))
+    
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+    
+    token = request.args.get("token") or request.form.get("token")
+    if not token:
+        flash("Invalid reset link.", "error")
+        return redirect(url_for("login"))
+    
+    user = User.query.filter_by(reset_token=token).first()
+    if not user or not user.verify_reset_token(token):
+        flash("Invalid or expired reset link. Please request a new one.", "error")
+        return redirect(url_for("forgot_password"))
+    
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm_password", "")
+        
+        if not password or len(password) < 8:
+            flash("Password must be at least 8 characters.", "error")
+        elif password != confirm:
+            flash("Passwords do not match.", "error")
+        else:
+            user.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+            user.clear_reset_token()
+            db.session.commit()
+            flash("Your password has been reset. Please login.", "success")
+            return redirect(url_for("login"))
+    
+    return render_template("reset_password.html", token=token)
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -440,6 +545,46 @@ def preview(slug):
     website = Website.query.filter_by(slug=slug, user_id=current_user.id).first_or_404()
     template_path = f"{website.template_name}/index.html"
     return render_template(template_path, site=website)
+
+
+# ── API Routes ────────────────────────────────────────────────────────────────
+@app.route("/api/check-slug/<slug>")
+@login_required
+def check_slug(slug):
+    """Check if a slug is available"""
+    exists = Website.query.filter_by(slug=slug).first() is not None
+    return jsonify({"available": not exists, "slug": slug})
+
+
+@app.route("/api/stats")
+@login_required
+def api_stats():
+    """Get user statistics"""
+    total_sites = Website.query.filter_by(user_id=current_user.id).count()
+    published_sites = Website.query.filter_by(user_id=current_user.id, is_published=True).count()
+    draft_sites = total_sites - published_sites
+    
+    return jsonify({
+        "total_sites": total_sites,
+        "published": published_sites,
+        "drafts": draft_sites
+    })
+
+
+# ── Error Handlers ────────────────────────────────────────────────────────────
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("404.html"), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template("500.html"), 500
+
+
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template("403.html"), 403
 
 
 # ── Init DB ───────────────────────────────────────────────────────────────────
