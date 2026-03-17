@@ -713,8 +713,110 @@ def forbidden(e):
 
 
 # ── Init DB ───────────────────────────────────────────────────────────────────
+def run_migrations():
+    """Add any missing columns to existing tables (safe to run on every startup)."""
+    from sqlalchemy import text, inspect
+
+    is_postgres = "postgresql" in app.config["SQLALCHEMY_DATABASE_URI"]
+
+    # Map: (table, column) -> ADD COLUMN SQL
+    # Uses PostgreSQL types when on postgres, SQLite-compatible otherwise
+    if is_postgres:
+        migrations = [
+            # users
+            ("users", "reset_token",        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(100)"),
+            ("users", "reset_token_expiry", "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP"),
+            ("users", "email_verified",     "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE"),
+            ("users", "last_login",         "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP"),
+            # websites – colors
+            ("websites", "accent_color",      "ALTER TABLE websites ADD COLUMN IF NOT EXISTS accent_color VARCHAR(20) DEFAULT '#f59e0b'"),
+            ("websites", "background_color",  "ALTER TABLE websites ADD COLUMN IF NOT EXISTS background_color VARCHAR(20) DEFAULT '#ffffff'"),
+            ("websites", "text_color",        "ALTER TABLE websites ADD COLUMN IF NOT EXISTS text_color VARCHAR(20) DEFAULT '#1a1a2e'"),
+            # websites – typography / media
+            ("websites", "font_family",  "ALTER TABLE websites ADD COLUMN IF NOT EXISTS font_family VARCHAR(100) DEFAULT 'Inter'"),
+            ("websites", "logo",         "ALTER TABLE websites ADD COLUMN IF NOT EXISTS logo VARCHAR(300)"),
+            ("websites", "hero_image",   "ALTER TABLE websites ADD COLUMN IF NOT EXISTS hero_image VARCHAR(300)"),
+            # websites – hero
+            ("websites", "hero_title",       "ALTER TABLE websites ADD COLUMN IF NOT EXISTS hero_title VARCHAR(300)"),
+            ("websites", "hero_subtitle",    "ALTER TABLE websites ADD COLUMN IF NOT EXISTS hero_subtitle TEXT"),
+            ("websites", "cta_button_text",  "ALTER TABLE websites ADD COLUMN IF NOT EXISTS cta_button_text VARCHAR(100) DEFAULT 'Get Started'"),
+            ("websites", "cta_button_url",   "ALTER TABLE websites ADD COLUMN IF NOT EXISTS cta_button_url VARCHAR(300) DEFAULT '#contact'"),
+            # websites – about
+            ("websites", "about_title", "ALTER TABLE websites ADD COLUMN IF NOT EXISTS about_title VARCHAR(200) DEFAULT 'About Us'"),
+            ("websites", "about_text",  "ALTER TABLE websites ADD COLUMN IF NOT EXISTS about_text TEXT"),
+            # websites – contact
+            ("websites", "whatsapp", "ALTER TABLE websites ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(50)"),
+            # websites – social
+            ("websites", "linkedin", "ALTER TABLE websites ADD COLUMN IF NOT EXISTS linkedin VARCHAR(200)"),
+            ("websites", "youtube",  "ALTER TABLE websites ADD COLUMN IF NOT EXISTS youtube VARCHAR(200)"),
+            # websites – visibility toggles
+            ("websites", "show_gallery",  "ALTER TABLE websites ADD COLUMN IF NOT EXISTS show_gallery BOOLEAN DEFAULT TRUE"),
+            ("websites", "show_stats",    "ALTER TABLE websites ADD COLUMN IF NOT EXISTS show_stats BOOLEAN DEFAULT TRUE"),
+            ("websites", "show_features", "ALTER TABLE websites ADD COLUMN IF NOT EXISTS show_features BOOLEAN DEFAULT TRUE"),
+            # websites – SEO
+            ("websites", "meta_title",       "ALTER TABLE websites ADD COLUMN IF NOT EXISTS meta_title VARCHAR(200)"),
+            ("websites", "meta_description", "ALTER TABLE websites ADD COLUMN IF NOT EXISTS meta_description TEXT"),
+            ("websites", "meta_keywords",    "ALTER TABLE websites ADD COLUMN IF NOT EXISTS meta_keywords VARCHAR(500)"),
+            ("websites", "og_image",         "ALTER TABLE websites ADD COLUMN IF NOT EXISTS og_image VARCHAR(300)"),
+            # websites – builder
+            ("websites", "about_text_html", "ALTER TABLE websites ADD COLUMN IF NOT EXISTS about_text_html TEXT"),
+            ("websites", "sections_order",  "ALTER TABLE websites ADD COLUMN IF NOT EXISTS sections_order VARCHAR(500) DEFAULT 'hero,about,features,stats,gallery,contact'"),
+            # websites – extra fields
+            ("websites", "description", "ALTER TABLE websites ADD COLUMN IF NOT EXISTS description TEXT"),
+            ("websites", "tagline",     "ALTER TABLE websites ADD COLUMN IF NOT EXISTS tagline VARCHAR(300)"),
+        ]
+        # features 1-4
+        for i in range(1, 5):
+            migrations += [
+                ("websites", f"feature{i}_title", f"ALTER TABLE websites ADD COLUMN IF NOT EXISTS feature{i}_title VARCHAR(200)"),
+                ("websites", f"feature{i}_text",  f"ALTER TABLE websites ADD COLUMN IF NOT EXISTS feature{i}_text TEXT"),
+                ("websites", f"feature{i}_icon",  f"ALTER TABLE websites ADD COLUMN IF NOT EXISTS feature{i}_icon VARCHAR(50)"),
+            ]
+        # stats 1-4
+        for i in range(1, 5):
+            migrations += [
+                ("websites", f"stat{i}_number", f"ALTER TABLE websites ADD COLUMN IF NOT EXISTS stat{i}_number VARCHAR(50)"),
+                ("websites", f"stat{i}_label",  f"ALTER TABLE websites ADD COLUMN IF NOT EXISTS stat{i}_label VARCHAR(100)"),
+            ]
+
+        with db.engine.connect() as conn:
+            for _table, _col, sql in migrations:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+
+        # Create extra tables
+        with db.engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS contact_submissions (
+                    id SERIAL PRIMARY KEY,
+                    website_id INTEGER NOT NULL REFERENCES websites(id) ON DELETE CASCADE,
+                    name VARCHAR(200) NOT NULL,
+                    email VARCHAR(200) NOT NULL,
+                    phone VARCHAR(50),
+                    message TEXT NOT NULL,
+                    status VARCHAR(20) DEFAULT 'new',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS site_analytics (
+                    id SERIAL PRIMARY KEY,
+                    website_id INTEGER NOT NULL UNIQUE REFERENCES websites(id) ON DELETE CASCADE,
+                    page_views INTEGER DEFAULT 0,
+                    unique_visitors INTEGER DEFAULT 0,
+                    last_viewed TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.commit()
+
+
 with app.app_context():
     db.create_all()
+    run_migrations()
 
 if __name__ == "__main__":
     app.run(debug=True)
