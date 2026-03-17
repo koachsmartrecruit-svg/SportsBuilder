@@ -8,7 +8,7 @@
   <meta name="theme-color" content="{{ site.primary_color or '#2563eb' }}">
   <meta property="og:title" content="{{ site.site_name }}">
   <meta property="og:description" content="{{ site.tagline or site.description or 'Find Your Dream Coaching Job' }}">
-  {% if site.hero_image %}<meta property="og:image" content="{{ url_for('static', filename=site.hero_image) }}">{% endif %}
+  {% if site.hero_image %}<meta property="og:image" content="{{ img_url(site.hero_image) }}">{% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -69,7 +69,7 @@
       justify-content: center; font-size: 8rem; position: relative; overflow: hidden;
     }
     {% if site.hero_image %}
-    .hero-visual { background-image: url('{{ url_for('static', filename=site.hero_image) }}'); background-size: cover; background-position: center; }
+    .hero-visual { background-image: url('{{ img_url(site.hero_image) }}'); background-size: cover; background-position: center; }
     {% endif %}
 
     /* Stats */
@@ -289,7 +289,7 @@
     <div class="gallery-grid">
       {% for img in site.gallery %}
       <div class="gallery-item">
-        <img src="{{ url_for('static', filename=img.image_path) }}" alt="{{ img.caption or site.site_name }}" loading="lazy">
+        <img src="{{ img_url(img.image_path) }}" alt="{{ img.caption or site.site_name }}" loading="lazy">
       </div>
       {% endfor %}
     </div>

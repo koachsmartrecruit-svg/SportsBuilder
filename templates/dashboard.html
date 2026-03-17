@@ -19,7 +19,7 @@
     <div class="site-card">
       <div class="site-card-hero" style="background: linear-gradient(135deg, {{ site.primary_color }}, {{ site.secondary_color }});">
         {% if site.hero_image %}
-        <img src="{{ url_for('static', filename=site.hero_image) }}" alt="{{ site.site_name }}">
+        <img src="{{ img_url(site.hero_image) }}" alt="{{ site.site_name }}">
         {% else %}
         <span class="site-card-icon">{{ templates[site.template_name]['icon'] }}</span>
         {% endif %}

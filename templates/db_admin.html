@@ -120,7 +120,7 @@
       <div class="gallery-admin-grid">
         {% for img in gallery_items %}
         <div class="gallery-admin-item">
-          <img src="{{ url_for('static', filename=img.image_path) }}" alt="{{ img.caption or '' }}">
+          <img src="{{ img_url(img.image_path) }}" alt="{{ img.caption or '' }}">
           <div class="gallery-admin-info">
             <small>{{ img.website.site_name if img.website else '—' }}</small>
             {% if img.caption %}<p>{{ img.caption }}</p>{% endif %}

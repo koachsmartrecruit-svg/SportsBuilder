@@ -404,7 +404,7 @@
         <div class="social-preview">
           <div class="preview-image">
             {% if site.og_image or site.hero_image %}
-            <img src="{{ url_for('static', filename=site.og_image or site.hero_image) }}" alt="Preview">
+            <img src="{{ img_url(site.og_image or site.hero_image) }}" alt="Preview">
             {% else %}
             <div class="preview-placeholder">🖼️</div>
             {% endif %}

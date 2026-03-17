@@ -8,7 +8,7 @@
   <meta name="theme-color" content="{{ site.primary_color or '#e63946' }}">
   <meta property="og:title" content="{{ site.site_name }}">
   <meta property="og:description" content="{{ site.tagline or site.description or 'The ultimate sports championship.' }}">
-  {% if site.hero_image %}<meta property="og:image" content="{{ url_for('static', filename=site.hero_image) }}">{% endif %}
+  {% if site.hero_image %}<meta property="og:image" content="{{ img_url(site.hero_image) }}">{% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
 
     .hero {
       background: linear-gradient(160deg, var(--secondary), #1a1a2e);
-      {% if site.hero_image %}background-image: linear-gradient(rgba(10,10,30,0.75), rgba(10,10,30,0.9)), url('{{ url_for('static', filename=site.hero_image) }}'); background-size: cover; background-position: center;{% endif %}
+      {% if site.hero_image %}background-image: linear-gradient(rgba(10,10,30,0.75), rgba(10,10,30,0.9)), url('{{ img_url(site.hero_image) }}'); background-size: cover; background-position: center;{% endif %}
       padding: 6rem 2rem;
       text-align: center; position: relative; overflow: hidden;
     }
@@ -104,7 +104,7 @@
     <h2 class="section-title">Tournament Gallery</h2>
     <div class="gallery-grid">
       {% for img in site.gallery %}
-      <div class="gallery-item"><img src="{{ url_for('static', filename=img.image_path) }}" alt="{{ site.site_name }}" loading="lazy" decoding="async"></div>
+      <div class="gallery-item"><img src="{{ img_url(img.image_path) }}" alt="{{ site.site_name }}" loading="lazy" decoding="async"></div>
       {% endfor %}
     </div>
   </div>

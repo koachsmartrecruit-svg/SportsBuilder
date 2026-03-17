@@ -10,8 +10,8 @@
   <meta property="og:title" content="{{ site.meta_title or site.site_name }}">
   <meta property="og:description" content="{{ site.meta_description or site.tagline or site.description or '' }}">
   <meta property="og:type" content="website">
-  {% if site.og_image %}<meta property="og:image" content="{{ url_for('static', filename=site.og_image) }}">
-  {% elif site.hero_image %}<meta property="og:image" content="{{ url_for('static', filename=site.hero_image) }}">{% endif %}
+  {% if site.og_image %}<meta property="og:image" content="{{ img_url(site.og_image) }}">
+  {% elif site.hero_image %}<meta property="og:image" content="{{ img_url(site.hero_image) }}">{% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family={{ (site.font_family or 'Inter') | replace(' ', '+') }}:wght@400;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -61,7 +61,7 @@
     .hero-bg {
       position: absolute; inset: 0;
       {% if site.hero_image %}
-      background-image: url('{{ url_for('static', filename=site.hero_image) }}');
+      background-image: url('{{ img_url(site.hero_image) }}');
       background-size: cover; background-position: center; opacity: 0.3;
       {% endif %}
     }
@@ -213,7 +213,7 @@
 <nav class="nav">
   <a href="#" class="nav-brand">
     {% if site.logo %}
-    <img src="{{ url_for('static', filename=site.logo) }}" alt="{{ site.site_name }} logo" class="nav-logo">
+    <img src="{{ img_url(site.logo) }}" alt="{{ site.site_name }} logo" class="nav-logo">
     {% endif %}
     <span class="nav-name">{{ site.site_name }}</span>
   </a>
@@ -277,7 +277,7 @@
       </div>
       <div class="about-img">
         {% if site.hero_image %}
-        <img src="{{ url_for('static', filename=site.hero_image) }}" alt="{{ site.site_name }}">
+        <img src="{{ img_url(site.hero_image) }}" alt="{{ site.site_name }}">
         {% else %}
         <div class="about-placeholder">🏆</div>
         {% endif %}
@@ -335,8 +335,8 @@
     <h2 class="section-heading">Moments & Memories</h2>
     <div class="gallery-grid">
       {% for img in site.gallery %}
-      <div class="gallery-item" onclick="openLightbox('{{ url_for('static', filename=img.image_path) }}', '{{ img.caption or '' }}')">
-        <img src="{{ url_for('static', filename=img.image_path) }}" alt="{{ img.caption or site.site_name }}" loading="lazy" decoding="async">
+      <div class="gallery-item" onclick="openLightbox('{{ img_url(img.image_path) }}', '{{ img.caption or '' }}')">
+        <img src="{{ img_url(img.image_path) }}" alt="{{ img.caption or site.site_name }}" loading="lazy" decoding="async">
         {% if img.caption %}<div class="gallery-caption">{{ img.caption }}</div>{% endif %}
       </div>
       {% endfor %}

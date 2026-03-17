@@ -52,6 +52,17 @@ app.jinja_loader = ChoiceLoader([
 ])
 
 
+def img_url(path):
+    """Return a usable image URL whether path is a Cloudinary URL or a local relative path."""
+    if not path:
+        return ""
+    if path.startswith("http"):
+        return path
+    return url_for("static", filename=path)
+
+app.jinja_env.globals["img_url"] = img_url
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -117,32 +128,74 @@ def track_visit(website_id):
 
 
 def save_upload(file):
-    if file and file.filename and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        # Make unique
-        base, ext = os.path.splitext(filename)
-        import uuid
-        filename = f"{base}_{uuid.uuid4().hex[:8]}{ext}"
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(filepath)
-        return f"uploads/{filename}"
-    return None
+    """Save to Cloudinary if configured, otherwise local disk."""
+    if not file or not file.filename or not allowed_file(file.filename):
+        return None
+
+    cloudinary_url = os.environ.get("CLOUDINARY_URL", "")
+    if cloudinary_url:
+        try:
+            import cloudinary
+            import cloudinary.uploader
+            # cloudinary.config() reads CLOUDINARY_URL env var automatically
+            result = cloudinary.uploader.upload(
+                file,
+                folder="sportsbuilder",
+                resource_type="image",
+                transformation=[{"quality": "auto", "fetch_format": "auto"}],
+            )
+            return result["secure_url"]  # full https URL
+        except Exception as e:
+            app.logger.error(f"Cloudinary upload failed: {e}")
+            return None
+
+    # Local fallback (dev / no Cloudinary configured)
+    import uuid
+    filename = secure_filename(file.filename)
+    base, ext = os.path.splitext(filename)
+    filename = f"{base}_{uuid.uuid4().hex[:8]}{ext}"
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(filepath)
+    return f"uploads/{filename}"
 
 
-def delete_upload_if_unused(rel_path):
-    if not rel_path or not isinstance(rel_path, str):
+def delete_upload_if_unused(path):
+    """Delete from Cloudinary or local disk when no longer referenced."""
+    if not path or not isinstance(path, str):
         return
-    if not rel_path.startswith("uploads/"):
+
+    # Cloudinary URLs are full https:// links
+    if path.startswith("http"):
+        used = (
+            Website.query.filter(
+                (Website.hero_image == path) | (Website.logo == path) | (Website.og_image == path)
+            ).count()
+            + Gallery.query.filter_by(image_path=path).count()
+        )
+        if used > 1:
+            return
+        try:
+            import cloudinary
+            import cloudinary.uploader
+            # Extract public_id from URL: .../sportsbuilder/filename.ext
+            public_id = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+            cloudinary.uploader.destroy(f"sportsbuilder/{public_id}")
+        except Exception as e:
+            app.logger.error(f"Cloudinary delete failed: {e}")
         return
 
-    used_by_hero = Website.query.filter_by(hero_image=rel_path).count()
-    used_by_gallery = Gallery.query.filter_by(image_path=rel_path).count()
-    if used_by_hero + used_by_gallery > 1:
+    # Local path
+    if not path.startswith("uploads/"):
         return
-
-    abs_path = os.path.join(app.root_path, "static", rel_path)
+    used = Website.query.filter_by(hero_image=path).count() + Gallery.query.filter_by(image_path=path).count()
+    if used > 1:
+        return
+    abs_path = os.path.join(app.root_path, "static", path)
     try:
         if os.path.exists(abs_path):
+            os.remove(abs_path)
+    except OSError:
+        pass
             os.remove(abs_path)
     except OSError:
         pass
