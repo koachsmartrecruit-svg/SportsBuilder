@@ -23,6 +23,7 @@
   <div class="admin-tabs">
     <button class="admin-tab active" data-tab="overview">📊 Overview</button>
     <button class="admin-tab" data-tab="content">✏️ Content</button>
+    <button class="admin-tab" data-tab="builder">🧩 Builder</button>
     <button class="admin-tab" data-tab="design">🎨 Design</button>
     <button class="admin-tab" data-tab="submissions">📬 Submissions</button>
     <button class="admin-tab" data-tab="seo">🔍 SEO</button>
@@ -171,6 +172,39 @@
       </div>
 
       <button type="submit" class="btn-primary">💾 Save Changes</button>
+    </form>
+  </div>
+
+  <!-- Builder Tab -->
+  <div class="admin-tab-content" id="builder">
+    <form method="POST" action="{{ url_for('update_site_builder', site_id=site.id) }}" class="admin-form" id="builder-form">
+      <input type="hidden" name="sections_order" id="sections_order_input" value="{{ site.sections_order or 'hero,about,features,stats,gallery,contact' }}">
+      <input type="hidden" name="about_text_html" id="about_text_html_input">
+
+      <!-- Rich Text Editor -->
+      <div class="admin-card">
+        <h3>✏️ About Section — Rich Text Editor</h3>
+        <p class="help-text">Format your about text with bold, italic, lists, and links.</p>
+        <div id="quill-editor" style="min-height:180px;">{{ site.about_text_html | safe if site.about_text_html else (site.about_text or '') }}</div>
+      </div>
+
+      <!-- Drag & Drop Section Order -->
+      <div class="admin-card">
+        <h3>↕️ Section Order</h3>
+        <p class="help-text">Drag sections to reorder how they appear on your site.</p>
+        <ul id="section-sortable" class="section-sortable-list">
+          {% set order = (site.sections_order or 'hero,about,features,stats,gallery,contact').split(',') %}
+          {% set labels = {'hero': '🦸 Hero', 'about': '📖 About', 'features': '⚡ Features', 'stats': '📊 Stats', 'gallery': '🖼️ Gallery', 'contact': '📬 Contact'} %}
+          {% for sec in order %}
+          <li class="sortable-item" data-id="{{ sec }}">
+            <span class="drag-handle">⠿</span>
+            <span>{{ labels.get(sec, sec|capitalize) }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <button type="submit" class="btn-primary" id="builder-save-btn">💾 Save Builder Settings</button>
     </form>
   </div>
 
@@ -716,6 +750,61 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Builder tab */
+.section-sortable-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sortable-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.2rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: grab;
+  font-weight: 600;
+  color: #1e293b;
+  user-select: none;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.sortable-item:active { cursor: grabbing; }
+
+.sortable-item.sortable-ghost {
+  opacity: 0.4;
+  background: #e0e7ff;
+}
+
+.drag-handle {
+  font-size: 1.3rem;
+  color: #94a3b8;
+  cursor: grab;
+}
+
+/* Quill overrides */
+#quill-editor {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  font-size: 1rem;
+}
+
+.ql-toolbar {
+  border-radius: 8px 8px 0 0 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.ql-container {
+  border-color: #e2e8f0 !important;
+  border-radius: 0 0 8px 8px !important;
+}
 </style>
 
 <script>
@@ -741,6 +830,50 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
     const tabName = tab.dataset.tab;
     switchTab(tabName);
   });
+});
+</script>
+
+<!-- Quill rich text editor -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<!-- SortableJS drag & drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<script>
+// ── Quill rich text editor ──────────────────────────────────────────────────
+const quill = new Quill('#quill-editor', {
+  theme: 'snow',
+  placeholder: 'Tell your story...',
+  modules: {
+    toolbar: [
+      [{ header: [2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link', 'clean']
+    ]
+  }
+});
+
+// ── SortableJS section reorder ──────────────────────────────────────────────
+const sortableEl = document.getElementById('section-sortable');
+const sortable = Sortable.create(sortableEl, {
+  animation: 150,
+  ghostClass: 'sortable-ghost',
+  handle: '.drag-handle',
+  onEnd: updateSectionsInput
+});
+
+function updateSectionsInput() {
+  const order = [...sortableEl.querySelectorAll('.sortable-item')]
+    .map(el => el.dataset.id)
+    .join(',');
+  document.getElementById('sections_order_input').value = order;
+}
+
+// ── On form submit, sync Quill HTML into hidden input ──────────────────────
+document.getElementById('builder-form').addEventListener('submit', function() {
+  document.getElementById('about_text_html_input').value = quill.root.innerHTML;
+  updateSectionsInput();
 });
 </script>
 {% endblock %}

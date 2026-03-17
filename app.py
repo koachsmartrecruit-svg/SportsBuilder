@@ -630,6 +630,32 @@ def update_site_settings(site_id):
     return redirect(url_for("site_admin", site_id=site_id))
 
 
+@app.route("/site/<int:site_id>/admin/builder", methods=["POST"])
+@login_required
+def update_site_builder(site_id):
+    """Save rich text content and section order from the builder tab"""
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+
+    about_html = request.form.get("about_text_html", "").strip()
+    sections_order = request.form.get("sections_order", "").strip()
+
+    if about_html:
+        site.about_text_html = about_html
+        # Also store plain-text fallback (strip tags)
+        import re as _re
+        site.about_text = _re.sub(r"<[^>]+>", "", about_html).strip()
+
+    if sections_order:
+        allowed = {"hero", "about", "features", "stats", "gallery", "contact"}
+        parts = [s.strip() for s in sections_order.split(",") if s.strip() in allowed]
+        if parts:
+            site.sections_order = ",".join(parts)
+
+    db.session.commit()
+    flash("Builder settings saved!", "success")
+    return redirect(url_for("site_admin", site_id=site_id))
+
+
 @app.route("/submission/<int:submission_id>/mark-read", methods=["POST"])
 @login_required
 def mark_submission_read(submission_id):

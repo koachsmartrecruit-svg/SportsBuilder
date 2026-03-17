@@ -14,7 +14,7 @@ def migrate():
             # User table migrations
             print("\n📊 Migrating User table...")
             user_migrations = [
-                ("reset_token", "ALTER TABLE users ADD COLUMN reset_token VARCHAR(100) UNIQUE"),
+                ("reset_token", "ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)"),
                 ("reset_token_expiry", "ALTER TABLE users ADD COLUMN reset_token_expiry DATETIME"),
                 ("email_verified", "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 0"),
                 ("last_login", "ALTER TABLE users ADD COLUMN last_login DATETIME"),
@@ -177,6 +177,24 @@ def migrate():
             except Exception as e:
                 print(f"  ⊙ Table already exists or error: {e}")
         
+            # Add builder fields
+            print("\n📊 Adding Builder fields...")
+            builder_fields = [
+                ("about_text_html", "ALTER TABLE websites ADD COLUMN about_text_html TEXT"),
+                ("sections_order", "ALTER TABLE websites ADD COLUMN sections_order VARCHAR(500) DEFAULT 'hero,about,features,stats,gallery,contact'"),
+            ]
+
+            for field, sql in builder_fields:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                    print(f"  ✓ Added {field}")
+                except Exception as e:
+                    if "duplicate column" in str(e).lower():
+                        print(f"  ⊙ {field} already exists")
+                    else:
+                        print(f"  ✗ Error adding {field}: {e}")
+
         print("\n✅ Migration completed successfully!")
         print("\n📋 Summary:")
         print("  - User table: Added password reset and tracking fields")

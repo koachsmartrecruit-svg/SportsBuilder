@@ -118,6 +118,10 @@ class Website(db.Model):
     meta_description = db.Column(db.Text)
     meta_keywords = db.Column(db.String(500))
     og_image = db.Column(db.String(300))
+
+    # Builder
+    about_text_html = db.Column(db.Text)  # Rich text HTML version of about_text
+    sections_order = db.Column(db.String(500), default="hero,about,features,stats,gallery,contact")  # Comma-separated section order
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     gallery = db.relationship("Gallery", backref="website", lazy=True, cascade="all, delete-orphan")
