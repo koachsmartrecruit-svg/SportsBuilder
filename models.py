@@ -149,11 +149,27 @@ class ContactSubmission(db.Model):
 
 
 class SiteAnalytics(db.Model):
+    """Aggregate counters — updated on every visit for fast dashboard reads."""
     __tablename__ = "site_analytics"
     id = db.Column(db.Integer, primary_key=True)
-    website_id = db.Column(db.Integer, db.ForeignKey("websites.id"), nullable=False)
+    website_id = db.Column(db.Integer, db.ForeignKey("websites.id"), nullable=False, unique=True)
     page_views = db.Column(db.Integer, default=0)
     unique_visitors = db.Column(db.Integer, default=0)
     last_viewed = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     website = db.relationship("Website", backref=db.backref("analytics", uselist=False, cascade="all, delete-orphan"))
+
+
+class PageView(db.Model):
+    """One row per visit — powers time-series charts and referrer/device breakdown."""
+    __tablename__ = "page_views"
+    id = db.Column(db.Integer, primary_key=True)
+    website_id = db.Column(db.Integer, db.ForeignKey("websites.id"), nullable=False)
+    # visitor fingerprint (hashed IP so we never store raw PII)
+    visitor_hash = db.Column(db.String(64))
+    referrer = db.Column(db.String(500))
+    # coarse device type derived from User-Agent
+    device = db.Column(db.String(20), default="desktop")  # desktop | mobile | tablet
+    country = db.Column(db.String(100))
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    website = db.relationship("Website", backref=db.backref("page_view_events", lazy="dynamic", cascade="all, delete-orphan"))

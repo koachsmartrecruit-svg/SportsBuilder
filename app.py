@@ -5,7 +5,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from jinja2 import ChoiceLoader, FileSystemLoader
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Website, Gallery
+from models import db, User, Website, Gallery, ContactSubmission, SiteAnalytics, PageView
 from datetime import datetime
 import secrets
 
@@ -62,6 +62,58 @@ def slugify(text):
     text = re.sub(r"[^\w\s-]", "", text)
     text = re.sub(r"[\s_-]+", "-", text)
     return text
+
+
+import hashlib
+
+def _detect_device(ua):
+    ua = (ua or "").lower()
+    if any(x in ua for x in ("iphone", "android", "mobile", "blackberry", "windows phone")):
+        return "mobile"
+    if any(x in ua for x in ("ipad", "tablet")):
+        return "tablet"
+    return "desktop"
+
+
+def track_visit(website_id):
+    """Record a page view and update aggregate counters."""
+    try:
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+        visitor_hash = hashlib.sha256(ip.encode()).hexdigest()[:32]
+        referrer = (request.referrer or "")[:500]
+        device = _detect_device(request.headers.get("User-Agent", ""))
+
+        pv = PageView(
+            website_id=website_id,
+            visitor_hash=visitor_hash,
+            referrer=referrer,
+            device=device,
+        )
+        db.session.add(pv)
+
+        # Update aggregate row
+        agg = SiteAnalytics.query.filter_by(website_id=website_id).first()
+        if not agg:
+            agg = SiteAnalytics(website_id=website_id, page_views=0, unique_visitors=0)
+            db.session.add(agg)
+
+        agg.page_views = (agg.page_views or 0) + 1
+        agg.last_viewed = datetime.utcnow()
+
+        # Unique visitor = hash not seen in last 24 hours
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        already_seen = PageView.query.filter(
+            PageView.website_id == website_id,
+            PageView.visitor_hash == visitor_hash,
+            PageView.viewed_at >= cutoff,
+        ).count()
+        if already_seen <= 1:  # <=1 because we just added the row above
+            agg.unique_visitors = (agg.unique_visitors or 0) + 1
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()  # never crash the public page due to analytics
 
 
 def save_upload(file):
@@ -535,6 +587,7 @@ def site(slug):
     website = Website.query.filter_by(slug=slug).first_or_404()
     if not website.is_published:
         abort(404)
+    track_visit(website.id)
     template_path = f"{website.template_name}/index.html"
     return render_template(template_path, site=website)
 
@@ -552,13 +605,59 @@ def preview(slug):
 @login_required
 def site_admin(site_id):
     """Shopify-like admin dashboard for each website"""
-    from models import ContactSubmission, SiteAnalytics
-    
     site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
     submissions = ContactSubmission.query.filter_by(website_id=site_id).order_by(ContactSubmission.created_at.desc()).all()
     analytics = SiteAnalytics.query.filter_by(website_id=site_id).first()
-    
-    return render_template("site_admin.html", site=site, submissions=submissions, analytics=analytics)
+
+    # Last 30 days daily views for chart
+    from datetime import timedelta
+    from sqlalchemy import func, cast, Date
+    today = datetime.utcnow().date()
+    thirty_days_ago = today - timedelta(days=29)
+
+    daily_rows = (
+        db.session.query(
+            cast(PageView.viewed_at, Date).label("day"),
+            func.count(PageView.id).label("views"),
+        )
+        .filter(PageView.website_id == site_id, PageView.viewed_at >= thirty_days_ago)
+        .group_by(cast(PageView.viewed_at, Date))
+        .order_by(cast(PageView.viewed_at, Date))
+        .all()
+    )
+    daily_map = {str(r.day): r.views for r in daily_rows}
+    chart_labels = [(today - timedelta(days=29 - i)).isoformat() for i in range(30)]
+    chart_data = [daily_map.get(d, 0) for d in chart_labels]
+
+    # Device breakdown
+    device_rows = (
+        db.session.query(PageView.device, func.count(PageView.id).label("cnt"))
+        .filter(PageView.website_id == site_id)
+        .group_by(PageView.device)
+        .all()
+    )
+    device_data = {r.device: r.cnt for r in device_rows}
+
+    # Top referrers
+    referrer_rows = (
+        db.session.query(PageView.referrer, func.count(PageView.id).label("cnt"))
+        .filter(PageView.website_id == site_id, PageView.referrer != "")
+        .group_by(PageView.referrer)
+        .order_by(func.count(PageView.id).desc())
+        .limit(10)
+        .all()
+    )
+
+    return render_template(
+        "site_admin.html",
+        site=site,
+        submissions=submissions,
+        analytics=analytics,
+        chart_labels=chart_labels,
+        chart_data=chart_data,
+        device_data=device_data,
+        referrer_rows=referrer_rows,
+    )
 
 
 @app.route("/site/<int:site_id>/admin/content", methods=["POST"])
@@ -811,8 +910,24 @@ def run_migrations():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS page_views (
+                    id SERIAL PRIMARY KEY,
+                    website_id INTEGER NOT NULL REFERENCES websites(id) ON DELETE CASCADE,
+                    visitor_hash VARCHAR(64),
+                    referrer VARCHAR(500),
+                    device VARCHAR(20) DEFAULT 'desktop',
+                    country VARCHAR(100),
+                    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_page_views_website_id ON page_views(website_id)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_page_views_viewed_at ON page_views(viewed_at)"
+            ))
             conn.commit()
-
 
 with app.app_context():
     db.create_all()

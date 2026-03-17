@@ -22,6 +22,7 @@
 
   <div class="admin-tabs">
     <button class="admin-tab active" data-tab="overview">📊 Overview</button>
+    <button class="admin-tab" data-tab="analytics">📈 Analytics</button>
     <button class="admin-tab" data-tab="content">✏️ Content</button>
     <button class="admin-tab" data-tab="builder">🧩 Builder</button>
     <button class="admin-tab" data-tab="design">🎨 Design</button>
@@ -108,6 +109,94 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Analytics Tab -->
+  <div class="admin-tab-content" id="analytics">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👁️</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ analytics.page_views if analytics else 0 }}</div>
+          <div class="stat-label">Total Page Views</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ analytics.unique_visitors if analytics else 0 }}</div>
+          <div class="stat-label">Unique Visitors</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📱</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ device_data.get('mobile', 0) }}</div>
+          <div class="stat-label">Mobile Visits</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🖥️</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ device_data.get('desktop', 0) }}</div>
+          <div class="stat-label">Desktop Visits</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 30-day chart -->
+    <div class="admin-card">
+      <h3>Page Views — Last 30 Days</h3>
+      <canvas id="viewsChart" height="80"></canvas>
+    </div>
+
+    <div class="admin-grid">
+      <!-- Device breakdown -->
+      <div class="admin-card">
+        <h3>Device Breakdown</h3>
+        {% set total_visits = (device_data.get('desktop',0) + device_data.get('mobile',0) + device_data.get('tablet',0)) or 1 %}
+        {% for device, count in device_data.items() %}
+        <div class="device-row">
+          <span class="device-label">
+            {% if device == 'mobile' %}📱{% elif device == 'tablet' %}📟{% else %}🖥️{% endif %}
+            {{ device|capitalize }}
+          </span>
+          <div class="device-bar-wrap">
+            <div class="device-bar" style="width:{{ (count / total_visits * 100)|round|int }}%"></div>
+          </div>
+          <span class="device-count">{{ count }}</span>
+        </div>
+        {% else %}
+        <p class="help-text">No visit data yet.</p>
+        {% endfor %}
+      </div>
+
+      <!-- Top referrers -->
+      <div class="admin-card">
+        <h3>Top Referrers</h3>
+        {% if referrer_rows %}
+        <table class="referrer-table">
+          <thead><tr><th>Source</th><th>Visits</th></tr></thead>
+          <tbody>
+          {% for ref, cnt in referrer_rows %}
+          <tr>
+            <td class="ref-url">{{ ref or 'Direct / Unknown' }}</td>
+            <td><strong>{{ cnt }}</strong></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="help-text">No referrer data yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if analytics and analytics.last_viewed %}
+    <div class="admin-card">
+      <p class="help-text">Last visit: {{ analytics.last_viewed.strftime('%B %d, %Y at %I:%M %p UTC') }}</p>
+    </div>
+    {% endif %}
   </div>
 
   <!-- Content Tab -->
@@ -737,6 +826,23 @@
   margin-bottom: 1rem;
 }
 
+/* Analytics tab */
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.device-label { width: 90px; font-weight: 600; color: #1e293b; }
+.device-bar-wrap { flex: 1; background: #e2e8f0; border-radius: 4px; height: 10px; overflow: hidden; }
+.device-bar { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px; transition: width 0.6s ease; }
+.device-count { width: 40px; text-align: right; font-weight: 700; color: #1e293b; }
+
+.referrer-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.referrer-table th { text-align: left; padding: 0.5rem 0.75rem; background: #f8fafc; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+.referrer-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; }
+.ref-url { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #3b82f6; }
+
 @media (max-width: 768px) {
   .admin-header-content {
     flex-direction: column;
@@ -830,6 +936,43 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
     const tabName = tab.dataset.tab;
     switchTab(tabName);
   });
+});
+</script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// ── Views chart ─────────────────────────────────────────────────────────────
+const chartLabels = {{ chart_labels | tojson }};
+const chartData   = {{ chart_data   | tojson }};
+
+new Chart(document.getElementById('viewsChart'), {
+  type: 'line',
+  data: {
+    labels: chartLabels.map(d => {
+      const dt = new Date(d);
+      return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }),
+    datasets: [{
+      label: 'Page Views',
+      data: chartData,
+      fill: true,
+      tension: 0.4,
+      borderColor: '#667eea',
+      backgroundColor: 'rgba(102,126,234,0.12)',
+      pointBackgroundColor: '#667eea',
+      pointRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { precision: 0 } },
+      x: { grid: { display: false } }
+    }
+  }
 });
 </script>
 
