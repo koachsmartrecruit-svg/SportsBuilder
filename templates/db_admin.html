@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Database Admin{% endblock %}
+{% block content %}
+<div class="dba-wrap">
+  <div class="dba-header">
+    <div>
+      <a href="{{ url_for('dashboard') }}" class="back-link">← Dashboard</a>
+      <h1>🗄️ Database Admin</h1>
+      <p class="dba-sub">GUI CRUD for all your data</p>
+    </div>
+    <div class="dba-header-stats">
+      <div class="dba-hstat"><span>{{ user_count }}</span>Users</div>
+      <div class="dba-hstat"><span>{{ site_count }}</span>Sites</div>
+      <div class="dba-hstat"><span>{{ submission_count }}</span>Submissions</div>
+      <div class="dba-hstat"><span>{{ view_count }}</span>Page Views</div>
+    </div>
+  </div>
+
+  <div class="dba-tabs">
+    <button class="dba-tab active" data-tab="sites">🌐 Sites</button>
+    <button class="dba-tab" data-tab="submissions">📬 Submissions</button>
+    <button class="dba-tab" data-tab="gallery">🖼️ Gallery</button>
+    <button class="dba-tab" data-tab="analytics">📊 Analytics</button>
+    <button class="dba-tab" data-tab="users">👤 Account</button>
+  </div>
+
+  <!-- SITES TAB -->
+  <div class="dba-content active" id="tab-sites">
+    <div class="dba-card">
+      <div class="dba-card-header">
+        <h3>Your Sites ({{ sites|length }})</h3>
+        <a href="{{ url_for('create_site') }}" class="dba-btn">+ New Site</a>
+      </div>
+      <div class="dba-table-wrap">
+        <table class="dba-table">
+          <thead><tr>
+            <th>Name</th><th>Slug</th><th>Template</th><th>Status</th><th>Created</th><th>Actions</th>
+          </tr></thead>
+          <tbody>
+          {% for s in sites %}
+          <tr>
+            <td><strong>{{ s.site_name }}</strong></td>
+            <td><code>{{ s.slug }}</code></td>
+            <td>{{ s.template_name | replace('_template','') | capitalize }}</td>
+            <td>
+              <span class="dba-badge {% if s.is_published %}badge-green{% else %}badge-gray{% endif %}">
+                {{ 'Published' if s.is_published else 'Draft' }}
+              </span>
+            </td>
+            <td>{{ s.created_at.strftime('%d %b %Y') }}</td>
+            <td class="dba-actions">
+              <a href="{{ url_for('site_admin', site_id=s.id) }}" class="dba-btn-sm">Manage</a>
+              <a href="{{ url_for('preview', slug=s.slug) }}" class="dba-btn-sm btn-outline" target="_blank">Preview</a>
+              <button class="dba-btn-sm btn-danger" onclick="confirmDelete('{{ url_for('delete_site', site_id=s.id) }}', '{{ s.site_name }}')">Delete</button>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMISSIONS TAB -->
+  <div class="dba-content" id="tab-submissions">
+    <div class="dba-card">
+      <div class="dba-card-header">
+        <h3>All Contact Submissions ({{ submissions|length }})</h3>
+        <div class="dba-filters">
+          <select id="subFilter" onchange="filterSubmissions()">
+            <option value="">All Status</option>
+            <option value="new">New</option>
+            <option value="read">Read</option>
+          </select>
+        </div>
+      </div>
+      {% if submissions %}
+      <div class="dba-table-wrap">
+        <table class="dba-table" id="subTable">
+          <thead><tr>
+            <th>Site</th><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Status</th><th>Date</th><th>Actions</th>
+          </tr></thead>
+          <tbody>
+          {% for sub in submissions %}
+          <tr data-status="{{ sub.status }}">
+            <td><small>{{ sub.website.site_name if sub.website else '—' }}</small></td>
+            <td><strong>{{ sub.name }}</strong></td>
+            <td><a href="mailto:{{ sub.email }}">{{ sub.email }}</a></td>
+            <td>{{ sub.phone or '—' }}</td>
+            <td class="msg-cell" title="{{ sub.message }}">{{ sub.message[:60] }}{% if sub.message|length > 60 %}…{% endif %}</td>
+            <td><span class="dba-badge {% if sub.status == 'new' %}badge-blue{% else %}badge-gray{% endif %}">{{ sub.status }}</span></td>
+            <td><small>{{ sub.created_at.strftime('%d %b %Y') }}</small></td>
+            <td class="dba-actions">
+              <a href="mailto:{{ sub.email }}" class="dba-btn-sm">Reply</a>
+              <form method="POST" action="{{ url_for('mark_submission_read', submission_id=sub.id) }}" style="display:inline">
+                <button class="dba-btn-sm btn-outline" type="submit">Mark Read</button>
+              </form>
+              <form method="POST" action="{{ url_for('delete_submission', submission_id=sub.id) }}" style="display:inline" onsubmit="return confirm('Delete this submission?')">
+                <button class="dba-btn-sm btn-danger" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="dba-empty">📬 No submissions yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- GALLERY TAB -->
+  <div class="dba-content" id="tab-gallery">
+    <div class="dba-card">
+      <div class="dba-card-header">
+        <h3>Gallery Images ({{ gallery_items|length }})</h3>
+      </div>
+      {% if gallery_items %}
+      <div class="gallery-admin-grid">
+        {% for img in gallery_items %}
+        <div class="gallery-admin-item">
+          <img src="{{ url_for('static', filename=img.image_path) }}" alt="{{ img.caption or '' }}">
+          <div class="gallery-admin-info">
+            <small>{{ img.website.site_name if img.website else '—' }}</small>
+            {% if img.caption %}<p>{{ img.caption }}</p>{% endif %}
+            <form method="POST" action="{{ url_for('delete_gallery', img_id=img.id) }}" onsubmit="return confirm('Delete image?')">
+              <button class="dba-btn-sm btn-danger" type="submit">Delete</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="dba-empty">🖼️ No gallery images yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ANALYTICS TAB -->
+  <div class="dba-content" id="tab-analytics">
+    <div class="dba-card">
+      <div class="dba-card-header"><h3>Site Analytics Overview</h3></div>
+      <div class="dba-table-wrap">
+        <table class="dba-table">
+          <thead><tr><th>Site</th><th>Page Views</th><th>Unique Visitors</th><th>Last Viewed</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for s in sites %}
+          <tr>
+            <td><strong>{{ s.site_name }}</strong><br><small><code>{{ s.slug }}</code></small></td>
+            <td><strong>{{ s.analytics.page_views if s.analytics else 0 }}</strong></td>
+            <td>{{ s.analytics.unique_visitors if s.analytics else 0 }}</td>
+            <td>{{ s.analytics.last_viewed.strftime('%d %b %Y %H:%M') if s.analytics and s.analytics.last_viewed else '—' }}</td>
+            <td><span class="dba-badge {% if s.is_published %}badge-green{% else %}badge-gray{% endif %}">{{ 'Live' if s.is_published else 'Draft' }}</span></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT TAB -->
+  <div class="dba-content" id="tab-users">
+    <div class="dba-card">
+      <div class="dba-card-header"><h3>Your Account</h3></div>
+      <div class="dba-form-grid">
+        <div class="dba-info-row"><label>Email</label><span>{{ current_user.email }}</span></div>
+        <div class="dba-info-row"><label>Member Since</label><span>{{ current_user.created_at.strftime('%B %d, %Y') }}</span></div>
+        <div class="dba-info-row"><label>Last Login</label><span>{{ current_user.last_login.strftime('%B %d, %Y %H:%M') if current_user.last_login else 'N/A' }}</span></div>
+        <div class="dba-info-row"><label>Total Sites</label><span>{{ site_count }}</span></div>
+      </div>
+      <hr style="margin: 1.5rem 0; border-color: #e2e8f0;">
+      <h4 style="margin-bottom: 1rem;">Change Password</h4>
+      <form method="POST" action="{{ url_for('change_password') }}" class="dba-inline-form">
+        <input type="password" name="current_password" placeholder="Current password" required>
+        <input type="password" name="new_password" placeholder="New password (min 8 chars)" required minlength="8">
+        <button type="submit" class="dba-btn">Update Password</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div id="deleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2rem;max-width:400px;width:90%;text-align:center;">
+    <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+    <h3 id="deleteModalTitle" style="margin-bottom:0.5rem;">Delete Site?</h3>
+    <p style="color:#64748b;margin-bottom:1.5rem;">This action cannot be undone. All data will be permanently deleted.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;">
+      <button onclick="document.getElementById('deleteModal').style.display='none'" style="padding:0.75rem 1.5rem;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-weight:600;">Cancel</button>
+      <form id="deleteForm" method="POST">
+        <button type="submit" style="padding:0.75rem 1.5rem;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;font-weight:600;">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.dba-wrap { max-width: 1300px; margin: 0 auto; padding: 2rem; }
+.dba-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap; }
+.dba-header h1 { font-size: 1.8rem; margin: 0.25rem 0; }
+.dba-sub { color: #64748b; margin: 0; }
+.dba-header-stats { display: flex; gap: 1rem; flex-wrap: wrap; }
+.dba-hstat { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.5rem; text-align: center; min-width: 90px; }
+.dba-hstat span { display: block; font-size: 1.8rem; font-weight: 800; color: #1e293b; }
+.dba-hstat { font-size: 0.8rem; color: #64748b; }
+.dba-tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 2rem; overflow-x: auto; }
+.dba-tab { padding: 0.75rem 1.25rem; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; color: #64748b; white-space: nowrap; transition: all 0.2s; }
+.dba-tab.active { color: #667eea; border-bottom-color: #667eea; }
+.dba-content { display: none; }
+.dba-content.active { display: block; }
+.dba-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.dba-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+.dba-card-header h3 { margin: 0; }
+.dba-table-wrap { overflow-x: auto; }
+.dba-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.dba-table th { text-align: left; padding: 0.75rem 1rem; background: #f8fafc; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+.dba-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.dba-table tr:hover td { background: #fafbff; }
+.dba-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.dba-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; background: #667eea; color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; text-decoration: none; transition: opacity 0.2s; }
+.dba-btn:hover { opacity: 0.85; }
+.dba-btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; background: #667eea; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.2s; }
+.dba-btn-sm:hover { opacity: 0.85; }
+.dba-btn-sm.btn-outline { background: transparent; border: 1px solid #e2e8f0; color: #64748b; }
+.dba-btn-sm.btn-danger { background: #fee2e2; color: #ef4444; }
+.dba-btn-sm.btn-danger:hover { background: #ef4444; color: #fff; }
+.dba-badge { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+.badge-green { background: #dcfce7; color: #16a34a; }
+.badge-gray { background: #f1f5f9; color: #64748b; }
+.badge-blue { background: #dbeafe; color: #2563eb; }
+.dba-empty { text-align: center; padding: 3rem; color: #94a3b8; font-size: 1.1rem; }
+.dba-filters select { padding: 0.4rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; }
+.msg-cell { max-width: 200px; }
+.gallery-admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+.gallery-admin-item { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+.gallery-admin-item img { width: 100%; aspect-ratio: 4/3; object-fit: cover; }
+.gallery-admin-info { padding: 0.75rem; }
+.gallery-admin-info small { color: #64748b; font-size: 0.75rem; }
+.gallery-admin-info p { font-size: 0.82rem; margin: 0.25rem 0; }
+.dba-info-row { display: flex; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9; align-items: center; }
+.dba-info-row label { width: 140px; font-weight: 600; color: #64748b; font-size: 0.88rem; flex-shrink: 0; }
+.dba-inline-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+.dba-inline-form input { padding: 0.6rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; min-width: 200px; }
+code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.82rem; }
+</style>
+
+<script>
+// Tab switching
+document.querySelectorAll('.dba-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.dba-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.dba-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Delete confirm
+function confirmDelete(url, name) {
+  document.getElementById('deleteModalTitle').textContent = 'Delete "' + name + '"?';
+  document.getElementById('deleteForm').action = url;
+  document.getElementById('deleteModal').style.display = 'flex';
+}
+
+// Filter submissions
+function filterSubmissions() {
+  const val = document.getElementById('subFilter').value;
+  document.querySelectorAll('#subTable tbody tr').forEach(row => {
+    row.style.display = (!val || row.dataset.status === val) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

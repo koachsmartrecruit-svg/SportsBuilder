@@ -581,6 +581,22 @@ def delete_gallery(img_id):
     return redirect(url_for("edit_site", site_id=site.id))
 
 
+@app.route("/submit-contact/<slug>", methods=["POST"])
+def submit_contact(slug):
+    """Save contact form submission from public site."""
+    website = Website.query.filter_by(slug=slug, is_published=True).first_or_404()
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    message = request.form.get("message", "").strip()
+    if not name or not email or not message:
+        return "Missing fields", 400
+    sub = ContactSubmission(website_id=website.id, name=name, email=email, phone=phone, message=message)
+    db.session.add(sub)
+    db.session.commit()
+    return "OK", 200
+
+
 # ── Public Site Rendering ─────────────────────────────────────────────────────
 @app.route("/site/<slug>")
 def site(slug):
@@ -769,6 +785,55 @@ def mark_submission_read(submission_id):
     
     flash("Submission marked as read", "success")
     return redirect(url_for("site_admin", site_id=site.id))
+
+
+@app.route("/db-admin")
+@login_required
+def db_admin():
+    """GUI CRUD panel for all user data."""
+    sites = Website.query.filter_by(user_id=current_user.id).order_by(Website.created_at.desc()).all()
+    site_ids = [s.id for s in sites]
+    submissions = ContactSubmission.query.filter(ContactSubmission.website_id.in_(site_ids)).order_by(ContactSubmission.created_at.desc()).all() if site_ids else []
+    gallery_items = Gallery.query.filter(Gallery.website_id.in_(site_ids)).order_by(Gallery.created_at.desc()).all() if site_ids else []
+    from sqlalchemy import func
+    view_count = db.session.query(func.count(PageView.id)).filter(PageView.website_id.in_(site_ids)).scalar() if site_ids else 0
+    return render_template(
+        "db_admin.html",
+        sites=sites,
+        submissions=submissions,
+        gallery_items=gallery_items,
+        user_count=1,
+        site_count=len(sites),
+        submission_count=len(submissions),
+        view_count=view_count,
+    )
+
+
+@app.route("/submission/<int:submission_id>/delete", methods=["POST"])
+@login_required
+def delete_submission(submission_id):
+    sub = ContactSubmission.query.get_or_404(submission_id)
+    site = Website.query.filter_by(id=sub.website_id, user_id=current_user.id).first_or_404()
+    db.session.delete(sub)
+    db.session.commit()
+    flash("Submission deleted.", "info")
+    return redirect(url_for("db_admin"))
+
+
+@app.route("/change-password", methods=["POST"])
+@login_required
+def change_password():
+    current_pw = request.form.get("current_password", "")
+    new_pw = request.form.get("new_password", "")
+    if not check_password_hash(current_user.password_hash, current_pw):
+        flash("Current password is incorrect.", "error")
+    elif len(new_pw) < 8:
+        flash("New password must be at least 8 characters.", "error")
+    else:
+        current_user.password_hash = generate_password_hash(new_pw)
+        db.session.commit()
+        flash("Password updated successfully.", "success")
+    return redirect(url_for("db_admin"))
 
 
 # ── API Routes ────────────────────────────────────────────────────────────────

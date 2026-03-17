@@ -3,147 +3,341 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ site.site_name }}</title>
-  <meta name="description" content="{{ site.tagline or site.description or 'Excellence in Sports Training' }}">
+  <title>{{ site.meta_title or site.site_name }}</title>
+  <meta name="description" content="{{ site.meta_description or site.tagline or site.description or 'Excellence in Sports Training' }}">
+  {% if site.meta_keywords %}<meta name="keywords" content="{{ site.meta_keywords }}">{% endif %}
   <meta name="theme-color" content="{{ site.primary_color or '#e63946' }}">
-  <meta property="og:title" content="{{ site.site_name }}">
-  <meta property="og:description" content="{{ site.tagline or site.description or 'Excellence in Sports Training' }}">
-  {% if site.hero_image %}<meta property="og:image" content="{{ url_for('static', filename=site.hero_image) }}">{% endif %}
+  <meta property="og:title" content="{{ site.meta_title or site.site_name }}">
+  <meta property="og:description" content="{{ site.meta_description or site.tagline or site.description or '' }}">
+  <meta property="og:type" content="website">
+  {% if site.og_image %}<meta property="og:image" content="{{ url_for('static', filename=site.og_image) }}">
+  {% elif site.hero_image %}<meta property="og:image" content="{{ url_for('static', filename=site.hero_image) }}">{% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family={{ (site.font_family or 'Inter') | replace(' ', '+') }}:wght@400;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: {{ site.primary_color or '#e63946' }};
-      --secondary: {{ site.secondary_color or '#1d3557' }};
+      --primary:    {{ site.primary_color    or '#e63946' }};
+      --secondary:  {{ site.secondary_color  or '#1d3557' }};
+      --accent:     {{ site.accent_color     or '#f59e0b' }};
+      --bg:         {{ site.background_color or '#f8f9fc' }};
+      --text:       {{ site.text_color       or '#1a1a2e' }};
+      --font:       '{{ site.font_family or 'Inter' }}', sans-serif;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', sans-serif; color: #1a1a2e; background: #f8f9fc; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); color: var(--text); background: var(--bg); }
 
-    /* Nav */
-    .nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: var(--secondary); position: sticky; top: 0; z-index: 99; }
-    .nav-brand { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; color: #fff; }
-    .nav-links a { color: rgba(255,255,255,0.8); margin-left: 1.5rem; text-decoration: none; font-weight: 500; font-size: 0.9rem; }
-    .nav-links a:hover { color: var(--primary); }
+    /* ── NAV ── */
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem; background: var(--secondary);
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+    .nav-logo { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+    .nav-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; color: #fff; }
+    .nav-links { display: flex; align-items: center; gap: 0.25rem; }
+    .nav-links a {
+      color: rgba(255,255,255,0.75); padding: 0.4rem 0.9rem;
+      text-decoration: none; font-weight: 600; font-size: 0.88rem;
+      border-radius: 6px; transition: all 0.2s;
+    }
+    .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .nav-cta {
+      background: var(--primary) !important; color: #fff !important;
+      padding: 0.5rem 1.2rem !important; border-radius: 8px !important;
+    }
+    .nav-cta:hover { opacity: 0.9; transform: translateY(-1px); }
+    .nav-toggle { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
 
-    /* Hero */
+    /* ── HERO ── */
     .hero {
-      min-height: 88vh; display: flex; align-items: center; justify-content: center;
+      min-height: 92vh; display: flex; align-items: center; justify-content: center;
       position: relative; overflow: hidden;
       background: linear-gradient(135deg, var(--secondary) 0%, #0d0d1a 100%);
     }
     .hero-bg {
       position: absolute; inset: 0;
-      {% if site.hero_image %}background-image: url('{{ url_for('static', filename=site.hero_image) }}'); background-size: cover; background-position: center; opacity: 0.35;{% endif %}
+      {% if site.hero_image %}
+      background-image: url('{{ url_for('static', filename=site.hero_image) }}');
+      background-size: cover; background-position: center; opacity: 0.3;
+      {% endif %}
     }
-    .hero-content { position: relative; text-align: center; padding: 2rem; max-width: 700px; }
-    .hero-badge { display: inline-block; background: var(--primary); color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 0.3rem 1rem; border-radius: 20px; margin-bottom: 1.5rem; }
-    .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 8vw, 6rem); line-height: 1; letter-spacing: 4px; color: #fff; margin-bottom: 1rem; }
-    .hero p { color: rgba(255,255,255,0.75); font-size: 1.15rem; margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto; }
-    .hero-cta { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--primary); color: #fff; padding: 0.9rem 2rem; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 1rem; transition: transform 0.2s, opacity 0.2s; }
-    .hero-cta:hover { transform: translateY(-2px); opacity: 0.9; }
+    .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6)); }
+    .hero-content { position: relative; text-align: center; padding: 2rem; max-width: 780px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: var(--primary); color: #fff;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; padding: 0.35rem 1rem; border-radius: 20px; margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5rem, 9vw, 7rem); line-height: 1;
+      letter-spacing: 4px; color: #fff; margin-bottom: 1.25rem;
+    }
+    .hero-sub { color: rgba(255,255,255,0.8); font-size: 1.15rem; line-height: 1.7; margin-bottom: 2.5rem; max-width: 560px; margin-left: auto; margin-right: auto; }
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--primary); color: #fff;
+      padding: 0.9rem 2rem; border-radius: 10px;
+      font-weight: 700; text-decoration: none; font-size: 1rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: transparent; color: #fff;
+      padding: 0.9rem 2rem; border-radius: 10px;
+      font-weight: 700; text-decoration: none; font-size: 1rem;
+      border: 2px solid rgba(255,255,255,0.4);
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+    .hero-scroll { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.4); font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; animation: bounce 2s infinite; }
+    @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
 
-    /* About */
+    /* ── STATS BAR ── */
+    .stats-bar { background: var(--primary); padding: 2.5rem 2rem; }
+    .stats-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1.5rem; text-align: center; }
+    .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: #fff; line-height: 1; }
+    .stat-lbl { color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+
+    /* ── SECTIONS ── */
     .section { padding: 5rem 2rem; }
+    .section-alt { background: #f0f2f8; }
     .container { max-width: 1100px; margin: 0 auto; }
-    .section-label { text-transform: uppercase; letter-spacing: 3px; font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; }
-    .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: 3px; color: var(--secondary); margin-bottom: 1.5rem; }
-    .section-body { font-size: 1.05rem; color: #555; line-height: 1.8; max-width: 680px; }
+    .section-eyebrow { text-transform: uppercase; letter-spacing: 3px; font-size: 0.72rem; font-weight: 700; color: var(--primary); margin-bottom: 0.6rem; }
+    .section-heading { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: 3px; color: var(--secondary); margin-bottom: 1rem; line-height: 1.1; }
+    .section-lead { font-size: 1.05rem; color: #555; line-height: 1.8; max-width: 640px; }
 
-    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
-    .about-visual { background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 16px; height: 320px; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+    /* ── ABOUT ── */
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .about-img { border-radius: 20px; overflow: hidden; aspect-ratio: 4/3; }
+    .about-img img { width: 100%; height: 100%; object-fit: cover; }
+    .about-placeholder { background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-size: 6rem; height: 100%; border-radius: 20px; }
+    .about-highlights { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
+    .highlight-chip { background: var(--bg); border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.88rem; font-weight: 600; color: var(--secondary); display: flex; align-items: center; gap: 0.5rem; }
+    .highlight-chip::before { content: '✓'; color: var(--primary); font-weight: 800; }
 
-    /* Stats */
-    .stats { background: var(--secondary); padding: 3rem 2rem; }
-    .stats-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2rem; text-align: center; }
-    .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; color: var(--primary); line-height: 1; }
-    .stat-label { color: rgba(255,255,255,0.65); font-size: 0.85rem; margin-top: 0.25rem; text-transform: uppercase; letter-spacing: 1px; }
+    /* ── FEATURES ── */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
+    .feature-card {
+      background: #fff; border: 1px solid #e8ecf4; border-radius: 16px;
+      padding: 2rem; transition: transform 0.2s, box-shadow 0.2s;
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--primary); }
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.1); }
+    .feature-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .feature-title { font-size: 1.1rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.5rem; }
+    .feature-text { font-size: 0.92rem; color: #666; line-height: 1.7; }
 
-    /* Gallery */
-    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-    .gallery-item { aspect-ratio: 4/3; border-radius: 12px; overflow: hidden; }
+    /* ── GALLERY ── */
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 2.5rem; }
+    .gallery-item { aspect-ratio: 4/3; border-radius: 14px; overflow: hidden; cursor: pointer; position: relative; }
     .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
-    .gallery-item:hover img { transform: scale(1.05); }
-    .gallery-placeholder { background: linear-gradient(135deg, var(--primary)33, var(--secondary)33); display: flex; align-items: center; justify-content: center; font-size: 3rem; height: 100%; }
+    .gallery-item:hover img { transform: scale(1.06); }
+    .gallery-caption { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); color: #fff; padding: 1rem 0.75rem 0.75rem; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: opacity 0.3s; }
+    .gallery-item:hover .gallery-caption { opacity: 1; }
 
-    /* Contact */
-    .contact { background: var(--secondary); color: #fff; }
-    .contact .section-title { color: #fff; }
-    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
-    .contact-info p { color: rgba(255,255,255,0.7); line-height: 1.8; }
-    .contact-detail { display: flex; align-items: flex-start; gap: 0.75rem; margin-top: 1.5rem; color: rgba(255,255,255,0.7); font-size: 0.95rem; }
-    .contact-detail strong { color: #fff; display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.2rem; }
-    .social-links { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
-    .social-link { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; text-decoration: none; font-size: 1.1rem; transition: background 0.2s; }
-    .social-link:hover { background: var(--primary); }
+    /* ── CONTACT ── */
+    .contact-section { background: var(--secondary); }
+    .contact-section .section-heading { color: #fff; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 4rem; align-items: start; }
+    .contact-info-block { color: rgba(255,255,255,0.75); }
+    .contact-info-block p { line-height: 1.8; margin-bottom: 2rem; }
+    .contact-detail { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
+    .contact-detail-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .contact-detail-body strong { display: block; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.2rem; }
+    .contact-detail-body a { color: rgba(255,255,255,0.75); text-decoration: none; }
+    .contact-detail-body a:hover { color: var(--accent); }
+    .social-row { display: flex; gap: 0.75rem; margin-top: 2rem; }
+    .social-btn { width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,0.1); color: #fff; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 1rem; transition: background 0.2s; }
+    .social-btn:hover { background: var(--primary); }
 
-    /* Footer */
-    footer { background: #0a0a14; color: rgba(255,255,255,0.4); text-align: center; padding: 1.5rem; font-size: 0.8rem; }
-    footer a { color: var(--primary); }
+    /* Contact Form */
+    .contact-form-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; padding: 2.5rem; }
+    .contact-form-card h3 { color: #fff; font-size: 1.2rem; margin-bottom: 1.5rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-field { margin-bottom: 1rem; }
+    .form-field input, .form-field textarea, .form-field select {
+      width: 100%; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+      padding: 0.75rem 1rem; color: #fff; font-family: var(--font); font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+    .form-field input::placeholder, .form-field textarea::placeholder { color: rgba(255,255,255,0.4); }
+    .form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--primary); }
+    .form-field textarea { resize: vertical; min-height: 110px; }
+    .form-submit { width: 100%; background: var(--primary); color: #fff; border: none; padding: 0.9rem; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; font-family: var(--font); transition: opacity 0.2s, transform 0.2s; }
+    .form-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+    .form-success { display: none; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); border-radius: 10px; padding: 1rem; color: #4ade80; text-align: center; margin-top: 1rem; }
 
+    /* ── WHATSAPP FLOAT ── */
+    .wa-float {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 999;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #25d366; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; text-decoration: none;
+      box-shadow: 0 4px 20px rgba(37,211,102,0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .wa-float:hover { transform: scale(1.1); box-shadow: 0 6px 30px rgba(37,211,102,0.6); }
+    .wa-float-label { position: absolute; right: 68px; background: #fff; color: #1a1a2e; font-size: 0.8rem; font-weight: 700; padding: 0.4rem 0.8rem; border-radius: 8px; white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,0.15); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+    .wa-float:hover .wa-float-label { opacity: 1; }
+
+    /* ── FOOTER ── */
+    footer { background: #080810; color: rgba(255,255,255,0.35); text-align: center; padding: 2rem; font-size: 0.82rem; }
+    footer a { color: var(--primary); text-decoration: none; }
+
+    /* ── MOBILE ── */
     @media (max-width: 768px) {
-      .about-grid, .contact-grid { grid-template-columns: 1fr; }
-      .nav-links a { margin-left: 0.75rem; font-size: 0.8rem; }
+      .about-grid, .contact-grid { grid-template-columns: 1fr; gap: 2rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: var(--secondary); padding: 1rem; gap: 0.25rem; }
+      .nav-links.open { display: flex; }
+      .nav-toggle { display: block; }
+      .about-highlights { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
-<!-- Nav -->
+<!-- NAV -->
 <nav class="nav">
-  <div class="nav-brand">{{ site.site_name }}</div>
-  <div class="nav-links">
+  <a href="#" class="nav-brand">
+    {% if site.logo %}
+    <img src="{{ url_for('static', filename=site.logo) }}" alt="{{ site.site_name }} logo" class="nav-logo">
+    {% endif %}
+    <span class="nav-name">{{ site.site_name }}</span>
+  </a>
+  <div class="nav-links" id="navLinks">
     <a href="#about">About</a>
+    {% if site.show_features and (site.feature1_title or site.feature2_title) %}<a href="#features">Programs</a>{% endif %}
+    {% if site.show_stats and (site.stat1_number or site.stat2_number) %}<a href="#stats">Stats</a>{% endif %}
     {% if site.gallery %}<a href="#gallery">Gallery</a>{% endif %}
     <a href="#contact">Contact</a>
+    <a href="#contact" class="nav-cta">{{ site.cta_button_text or 'Join Now' }}</a>
   </div>
+  <button class="nav-toggle" onclick="document.getElementById('navLinks').classList.toggle('open')" aria-label="Menu">☰</button>
 </nav>
 
-<!-- Hero -->
-<section class="hero">
+<!-- HERO -->
+<section class="hero" id="home">
   <div class="hero-bg"></div>
+  <div class="hero-overlay"></div>
   <div class="hero-content">
     <span class="hero-badge">🏆 Sports Academy</span>
-    <h1>{{ site.site_name }}</h1>
-    <p>{{ site.tagline or site.description or "Excellence in Sports Training" }}</p>
-    <a href="#contact" class="hero-cta">Get in Touch →</a>
+    <h1>{{ site.hero_title or site.site_name }}</h1>
+    <p class="hero-sub">{{ site.hero_subtitle or site.tagline or site.description or "Excellence in Sports Training — Develop champions on and off the field." }}</p>
+    <div class="hero-actions">
+      <a href="{{ site.cta_button_url or '#contact' }}" class="btn-primary">{{ site.cta_button_text or 'Get Started' }} →</a>
+      {% if site.gallery %}<a href="#gallery" class="btn-outline">View Gallery</a>{% endif %}
+    </div>
   </div>
+  <div class="hero-scroll">↓ scroll</div>
 </section>
 
-<!-- Stats -->
-<div class="stats">
+<!-- STATS BAR -->
+{% if site.show_stats and (site.stat1_number or site.stat2_number or site.stat3_number or site.stat4_number) %}
+<div class="stats-bar" id="stats">
   <div class="stats-grid">
-    <div><div class="stat-num">500+</div><div class="stat-label">Athletes Trained</div></div>
-    <div><div class="stat-num">15+</div><div class="stat-label">Years Experience</div></div>
-    <div><div class="stat-num">50+</div><div class="stat-label">Championships</div></div>
-    <div><div class="stat-num">20+</div><div class="stat-label">Expert Coaches</div></div>
+    {% if site.stat1_number %}<div><div class="stat-num">{{ site.stat1_number }}</div><div class="stat-lbl">{{ site.stat1_label or 'Achievement' }}</div></div>{% endif %}
+    {% if site.stat2_number %}<div><div class="stat-num">{{ site.stat2_number }}</div><div class="stat-lbl">{{ site.stat2_label or 'Achievement' }}</div></div>{% endif %}
+    {% if site.stat3_number %}<div><div class="stat-num">{{ site.stat3_number }}</div><div class="stat-lbl">{{ site.stat3_label or 'Achievement' }}</div></div>{% endif %}
+    {% if site.stat4_number %}<div><div class="stat-num">{{ site.stat4_number }}</div><div class="stat-lbl">{{ site.stat4_label or 'Achievement' }}</div></div>{% endif %}
   </div>
 </div>
+{% endif %}
 
-<!-- About -->
+<!-- ABOUT -->
 <section class="section" id="about">
   <div class="container">
     <div class="about-grid">
       <div>
-        <div class="section-label">About Us</div>
-        <h2 class="section-title">{{ site.site_name }}</h2>
-        <p class="section-body">{{ site.description or "We are dedicated to developing the next generation of sports champions. Our world-class facilities and expert coaches provide the best environment for athletes to thrive." }}</p>
+        <div class="section-eyebrow">{{ site.about_title or 'About Us' }}</div>
+        <h2 class="section-heading">{{ site.site_name }}</h2>
+        {% if site.about_text_html %}
+        <div class="section-lead">{{ site.about_text_html | safe }}</div>
+        {% else %}
+        <p class="section-lead">{{ site.about_text or site.description or "We are dedicated to developing the next generation of sports champions. Our world-class facilities and expert coaches provide the best environment for athletes to thrive and reach their full potential." }}</p>
+        {% endif %}
+        <div class="about-highlights">
+          {% if site.feature1_title %}<div class="highlight-chip">{{ site.feature1_title }}</div>{% endif %}
+          {% if site.feature2_title %}<div class="highlight-chip">{{ site.feature2_title }}</div>{% endif %}
+          {% if site.feature3_title %}<div class="highlight-chip">{{ site.feature3_title }}</div>{% endif %}
+          {% if site.feature4_title %}<div class="highlight-chip">{{ site.feature4_title }}</div>{% endif %}
+        </div>
       </div>
-      <div class="about-visual">🏆</div>
+      <div class="about-img">
+        {% if site.hero_image %}
+        <img src="{{ url_for('static', filename=site.hero_image) }}" alt="{{ site.site_name }}">
+        {% else %}
+        <div class="about-placeholder">🏆</div>
+        {% endif %}
+      </div>
     </div>
   </div>
 </section>
 
-<!-- Gallery -->
-{% if site.gallery %}
-<section class="section" id="gallery" style="background: #f0f0f8;">
+<!-- FEATURES / PROGRAMS -->
+{% if site.show_features and (site.feature1_title or site.feature2_title or site.feature3_title or site.feature4_title) %}
+<section class="section section-alt" id="features">
   <div class="container">
-    <div class="section-label">Our Gallery</div>
-    <h2 class="section-title">Moments & Memories</h2>
+    <div class="section-eyebrow">What We Offer</div>
+    <h2 class="section-heading">Our Programs</h2>
+    <p class="section-lead">Tailored training programs designed to bring out the best in every athlete.</p>
+    <div class="features-grid">
+      {% if site.feature1_title %}
+      <div class="feature-card">
+        <div class="feature-icon">{{ site.feature1_icon or '🏅' }}</div>
+        <div class="feature-title">{{ site.feature1_title }}</div>
+        <div class="feature-text">{{ site.feature1_text or 'Professional training program designed for all skill levels.' }}</div>
+      </div>
+      {% endif %}
+      {% if site.feature2_title %}
+      <div class="feature-card">
+        <div class="feature-icon">{{ site.feature2_icon or '⚡' }}</div>
+        <div class="feature-title">{{ site.feature2_title }}</div>
+        <div class="feature-text">{{ site.feature2_text or 'Expert coaching to help you reach your peak performance.' }}</div>
+      </div>
+      {% endif %}
+      {% if site.feature3_title %}
+      <div class="feature-card">
+        <div class="feature-icon">{{ site.feature3_icon or '🎯' }}</div>
+        <div class="feature-title">{{ site.feature3_title }}</div>
+        <div class="feature-text">{{ site.feature3_text or 'Focused training sessions with measurable results.' }}</div>
+      </div>
+      {% endif %}
+      {% if site.feature4_title %}
+      <div class="feature-card">
+        <div class="feature-icon">{{ site.feature4_icon or '🏆' }}</div>
+        <div class="feature-title">{{ site.feature4_title }}</div>
+        <div class="feature-text">{{ site.feature4_text or 'Championship-level preparation and competition support.' }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- GALLERY -->
+{% if site.show_gallery and site.gallery %}
+<section class="section" id="gallery">
+  <div class="container">
+    <div class="section-eyebrow">Our Gallery</div>
+    <h2 class="section-heading">Moments & Memories</h2>
     <div class="gallery-grid">
       {% for img in site.gallery %}
-      <div class="gallery-item">
+      <div class="gallery-item" onclick="openLightbox('{{ url_for('static', filename=img.image_path) }}', '{{ img.caption or '' }}')">
         <img src="{{ url_for('static', filename=img.image_path) }}" alt="{{ img.caption or site.site_name }}" loading="lazy" decoding="async">
+        {% if img.caption %}<div class="gallery-caption">{{ img.caption }}</div>{% endif %}
       </div>
       {% endfor %}
     </div>
@@ -151,64 +345,136 @@
 </section>
 {% endif %}
 
-<!-- Contact -->
-<section class="section contact" id="contact">
+<!-- CONTACT -->
+<section class="section contact-section" id="contact">
   <div class="container">
     <div class="contact-grid">
-      <div class="contact-info">
-        <div class="section-label">Get In Touch</div>
-        <h2 class="section-title">Contact Us</h2>
-        <p>{{ site.description or "Reach out to us today and start your sports journey with us." }}</p>
+      <div class="contact-info-block">
+        <div class="section-eyebrow" style="color: var(--accent);">Get In Touch</div>
+        <h2 class="section-heading">Contact Us</h2>
+        <p>{{ site.description or "Ready to start your sports journey? Reach out to us and we'll get back to you within 24 hours." }}</p>
 
         {% if site.contact_email %}
         <div class="contact-detail">
-          <div>
+          <div class="contact-detail-icon">✉️</div>
+          <div class="contact-detail-body">
             <strong>Email</strong>
-            <a href="mailto:{{ site.contact_email }}" style="color: rgba(255,255,255,0.7);">{{ site.contact_email }}</a>
+            <a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a>
           </div>
         </div>
         {% endif %}
         {% if site.phone %}
         <div class="contact-detail">
-          <div><strong>Phone</strong>{{ site.phone }}</div>
+          <div class="contact-detail-icon">📞</div>
+          <div class="contact-detail-body">
+            <strong>Phone</strong>
+            <a href="tel:{{ site.phone }}">{{ site.phone }}</a>
+          </div>
+        </div>
+        {% endif %}
+        {% if site.whatsapp %}
+        <div class="contact-detail">
+          <div class="contact-detail-icon">💬</div>
+          <div class="contact-detail-body">
+            <strong>WhatsApp</strong>
+            <a href="https://wa.me/{{ site.whatsapp | replace('+','') | replace(' ','') | replace('-','') }}" target="_blank" rel="noopener">Chat on WhatsApp</a>
+          </div>
         </div>
         {% endif %}
         {% if site.address %}
         <div class="contact-detail">
-          <div><strong>Address</strong>{{ site.address }}</div>
+          <div class="contact-detail-icon">📍</div>
+          <div class="contact-detail-body">
+            <strong>Address</strong>
+            <span style="color:rgba(255,255,255,0.7)">{{ site.address }}</span>
+          </div>
         </div>
         {% endif %}
 
-        <div class="social-links">
-          {% if site.facebook %}<a href="{{ site.facebook }}" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="Facebook">f</a>{% endif %}
-          {% if site.instagram %}<a href="{{ site.instagram }}" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="Instagram">📸</a>{% endif %}
-          {% if site.twitter %}<a href="{{ site.twitter }}" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="X">𝕏</a>{% endif %}
+        <div class="social-row">
+          {% if site.facebook %}<a href="{{ site.facebook }}" class="social-btn" target="_blank" rel="noopener noreferrer" aria-label="Facebook">f</a>{% endif %}
+          {% if site.instagram %}<a href="{{ site.instagram }}" class="social-btn" target="_blank" rel="noopener noreferrer" aria-label="Instagram">📸</a>{% endif %}
+          {% if site.twitter %}<a href="{{ site.twitter }}" class="social-btn" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter">𝕏</a>{% endif %}
+          {% if site.linkedin %}<a href="{{ site.linkedin }}" class="social-btn" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">in</a>{% endif %}
+          {% if site.youtube %}<a href="{{ site.youtube }}" class="social-btn" target="_blank" rel="noopener noreferrer" aria-label="YouTube">▶</a>{% endif %}
         </div>
       </div>
-      <div>
-        <div style="background: rgba(255,255,255,0.05); border-radius: 16px; padding: 2rem;">
-          <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Send a Message</h3>
-          <form onsubmit="event.preventDefault(); alert('Thank you! We will get back to you soon.');">
-            <div style="margin-bottom: 1rem;">
-              <input type="text" name="name" autocomplete="name" placeholder="Your Name" style="width:100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 0.7rem 1rem; color: #fff; font-family: inherit; font-size: 0.95rem;">
+
+      <!-- Contact Form — saves to DB -->
+      <div class="contact-form-card">
+        <h3>Send a Message</h3>
+        <form id="contactForm" method="POST" action="/submit-contact/{{ site.slug }}">
+          <div class="form-row">
+            <div class="form-field">
+              <input type="text" name="name" placeholder="Your Name" required autocomplete="name">
             </div>
-            <div style="margin-bottom: 1rem;">
-              <input type="email" name="email" autocomplete="email" placeholder="Your Email" style="width:100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 0.7rem 1rem; color: #fff; font-family: inherit; font-size: 0.95rem;">
+            <div class="form-field">
+              <input type="email" name="email" placeholder="Email Address" required autocomplete="email">
             </div>
-            <div style="margin-bottom: 1rem;">
-              <textarea name="message" placeholder="Message" rows="4" style="width:100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 0.7rem 1rem; color: #fff; font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
-            </div>
-            <button type="submit" style="background: var(--primary); color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 0.95rem;">Send Message</button>
-          </form>
-        </div>
+          </div>
+          <div class="form-field">
+            <input type="tel" name="phone" placeholder="Phone / WhatsApp (optional)" autocomplete="tel">
+          </div>
+          <div class="form-field">
+            <textarea name="message" placeholder="Tell us about yourself or your query..." required></textarea>
+          </div>
+          <button type="submit" class="form-submit">Send Message →</button>
+          <div class="form-success" id="formSuccess">✅ Message sent! We'll get back to you soon.</div>
+        </form>
       </div>
     </div>
   </div>
 </section>
 
+<!-- WHATSAPP FLOAT -->
+{% if site.whatsapp %}
+<a href="https://wa.me/{{ site.whatsapp | replace('+','') | replace(' ','') | replace('-','') }}?text=Hi%2C%20I%20found%20you%20on%20{{ site.site_name | urlencode }}%20and%20would%20like%20to%20know%20more."
+   class="wa-float" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+  💬
+  <span class="wa-float-label">Chat on WhatsApp</span>
+</a>
+{% endif %}
+
+<!-- LIGHTBOX -->
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:1rem;" onclick="closeLightbox()">
+  <img id="lightboxImg" src="" alt="" style="max-width:90vw;max-height:80vh;border-radius:12px;object-fit:contain;">
+  <p id="lightboxCaption" style="color:rgba(255,255,255,0.7);font-size:0.9rem;"></p>
+  <button onclick="closeLightbox()" style="position:absolute;top:1.5rem;right:1.5rem;background:none;border:none;color:#fff;font-size:2rem;cursor:pointer;">✕</button>
+</div>
+
 <footer>
-  <p>© {{ site.site_name }} · Powered by <a href="/">SportsBuilder</a></p>
+  <p>© {{ site.site_name }} · Built with <a href="/">SportsBuilder</a></p>
 </footer>
 
+<script>
+// Contact form AJAX
+document.getElementById('contactForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = this.querySelector('.form-submit');
+  btn.textContent = 'Sending...'; btn.disabled = true;
+  try {
+    const res = await fetch(this.action, { method: 'POST', body: new FormData(this) });
+    if (res.ok) {
+      this.reset();
+      document.getElementById('formSuccess').style.display = 'block';
+      btn.textContent = 'Sent ✓';
+    } else { btn.textContent = 'Try again'; btn.disabled = false; }
+  } catch { btn.textContent = 'Try again'; btn.disabled = false; }
+});
+
+// Lightbox
+function openLightbox(src, caption) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightboxCaption').textContent = caption;
+  lb.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+</script>
 </body>
 </html>
