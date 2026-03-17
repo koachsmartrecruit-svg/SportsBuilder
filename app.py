@@ -196,9 +196,6 @@ def delete_upload_if_unused(path):
             os.remove(abs_path)
     except OSError:
         pass
-            os.remove(abs_path)
-    except OSError:
-        pass
 
 
 @login_manager.user_loader
