@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Pricing — SportsBuilder{% endblock %}
+{% block content %}
+<style>
+.pricing-page { max-width: 1100px; margin: 0 auto; padding: 4rem 2rem; }
+.pricing-header { text-align: center; margin-bottom: 4rem; }
+.pricing-label {
+  display: inline-block; color: var(--accent); font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1rem;
+}
+.pricing-header h1 { font-family: var(--font-display); font-size: 3rem; letter-spacing: 2px; margin-bottom: 1rem; }
+.pricing-header p { color: var(--muted); font-size: 1.1rem; }
+.plans-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem; margin-bottom: 4rem;
+}
+.plan-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 2.5rem; position: relative; transition: border-color 0.2s;
+}
+.plan-card:hover { border-color: var(--accent); }
+.plan-card.popular {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(255,77,109,0.05), var(--surface));
+}
+.popular-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; padding: 0.3rem 1rem; border-radius: 20px;
+}
+.plan-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.plan-price { font-family: var(--font-display); font-size: 3.5rem; letter-spacing: 1px; line-height: 1; margin-bottom: 0.25rem; }
+.plan-price span { font-family: var(--font-body); font-size: 1rem; color: var(--muted); font-weight: 400; }
+.plan-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+.plan-features { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+.plan-features li { display: flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; }
+.plan-features li .check { color: #2ecc71; font-size: 1rem; }
+.plan-features li .cross { color: var(--muted); font-size: 1rem; }
+.plan-features li.disabled { color: var(--muted); }
+.plan-btn {
+  display: block; text-align: center; padding: 0.85rem;
+  border-radius: 10px; font-weight: 700; font-size: 0.95rem; transition: all 0.2s;
+}
+.plan-btn-primary { background: var(--accent); color: #fff; }
+.plan-btn-primary:hover { opacity: 0.9; color: #fff; }
+.plan-btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.plan-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+.faq-section { max-width: 700px; margin: 0 auto; }
+.faq-section h2 { font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px; text-align: center; margin-bottom: 2rem; }
+.faq-item { border-bottom: 1px solid var(--border); padding: 1.5rem 0; }
+.faq-q { font-weight: 700; margin-bottom: 0.5rem; cursor: pointer; display: flex; justify-content: space-between; }
+.faq-a { color: var(--muted); font-size: 0.95rem; line-height: 1.7; }
+</style>
+
+<div class="pricing-page">
+  <div class="pricing-header">
+    <div class="pricing-label">Pricing</div>
+    <h1>Simple, Honest Pricing</h1>
+    <p>Start free. Upgrade when you're ready to grow.</p>
+  </div>
+
+  <div class="plans-grid">
+    <!-- Free -->
+    <div class="plan-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">₹0 <span>/ forever</span></div>
+      <div class="plan-desc">Everything you need to get started.</div>
+      <ul class="plan-features">
+        <li><span class="check">✓</span> 1 website</li>
+        <li><span class="check">✓</span> All 4 templates</li>
+        <li><span class="check">✓</span> Custom colors & fonts</li>
+        <li><span class="check">✓</span> Contact form</li>
+        <li><span class="check">✓</span> Basic analytics</li>
+        <li><span class="check">✓</span> Gallery (up to 10 images)</li>
+        <li class="disabled"><span class="cross">✗</span> Blog / News posts</li>
+        <li class="disabled"><span class="cross">✗</span> Remove SportsBuilder branding</li>
+        <li class="disabled"><span class="cross">✗</span> Priority support</li>
+      </ul>
+      {% if current_user.is_authenticated %}
+      <a href="{{ url_for('dashboard') }}" class="plan-btn plan-btn-outline">Go to Dashboard</a>
+      {% else %}
+      <a href="{{ url_for('signup') }}" class="plan-btn plan-btn-outline">Get Started Free</a>
+      {% endif %}
+    </div>
+
+    <!-- Pro -->
+    <div class="plan-card popular">
+      <div class="popular-badge">Most Popular</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">₹499 <span>/ month</span></div>
+      <div class="plan-desc">For growing sports organizations.</div>
+      <ul class="plan-features">
+        <li><span class="check">✓</span> Up to 5 websites</li>
+        <li><span class="check">✓</span> All 4 templates</li>
+        <li><span class="check">✓</span> Custom colors & fonts</li>
+        <li><span class="check">✓</span> Contact form</li>
+        <li><span class="check">✓</span> Advanced analytics</li>
+        <li><span class="check">✓</span> Unlimited gallery images</li>
+        <li><span class="check">✓</span> Blog / News posts</li>
+        <li><span class="check">✓</span> Remove SportsBuilder branding</li>
+        <li class="disabled"><span class="cross">✗</span> Priority support</li>
+      </ul>
+      <a href="{{ url_for('signup') }}" class="plan-btn plan-btn-primary">Coming Soon</a>
+    </div>
+
+    <!-- Club -->
+    <div class="plan-card">
+      <div class="plan-name">Club</div>
+      <div class="plan-price">₹1,499 <span>/ month</span></div>
+      <div class="plan-desc">For large clubs and multi-site organizations.</div>
+      <ul class="plan-features">
+        <li><span class="check">✓</span> Unlimited websites</li>
+        <li><span class="check">✓</span> All 4 templates</li>
+        <li><span class="check">✓</span> Custom colors & fonts</li>
+        <li><span class="check">✓</span> Contact form</li>
+        <li><span class="check">✓</span> Advanced analytics</li>
+        <li><span class="check">✓</span> Unlimited gallery images</li>
+        <li><span class="check">✓</span> Blog / News posts</li>
+        <li><span class="check">✓</span> Remove SportsBuilder branding</li>
+        <li><span class="check">✓</span> Priority support</li>
+      </ul>
+      <a href="{{ url_for('signup') }}" class="plan-btn plan-btn-outline">Coming Soon</a>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-item">
+      <div class="faq-q">Is the free plan really free forever?</div>
+      <div class="faq-a">Yes. The free plan has no time limit. You can build and publish one website at no cost, forever.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Can I change my template later?</div>
+      <div class="faq-a">Yes. You can switch templates at any time from the site editor. Your content is preserved.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What does "remove branding" mean?</div>
+      <div class="faq-a">On the free plan, a small "Built with SportsBuilder" badge appears on your site. Pro and Club plans remove it.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">When will paid plans be available?</div>
+      <div class="faq-a">We're working on it. Sign up for free now and you'll be notified when Pro launches.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

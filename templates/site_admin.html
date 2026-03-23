@@ -10,6 +10,9 @@
         <p class="admin-subtitle">Manage your website content and settings</p>
       </div>
       <div class="admin-header-actions">
+        <a href="{{ url_for('blog_admin', site_id=site.id) }}" class="btn-outline">
+          📰 Blog
+        </a>
         <a href="{{ url_for('preview', slug=site.slug) }}" class="btn-outline" target="_blank">
           👁️ Preview
         </a>

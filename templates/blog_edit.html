@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{% if post %}Edit Post{% else %}New Post{% endif %} — {{ site.site_name }}{% endblock %}
+{% block head %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<style>
+.blog-edit-page { max-width: 860px; margin: 0 auto; padding: 2.5rem 2rem; }
+.blog-edit-page h1 { font-family: var(--font-display); font-size: 2rem; letter-spacing: 2px; margin-bottom: 0.25rem; }
+.blog-edit-page .back-link { color: var(--muted); font-size: 0.9rem; display: block; margin-bottom: 0.5rem; }
+.edit-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin-top: 2rem; }
+.form-group { margin-bottom: 1.5rem; }
+.form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-bottom: 0.5rem; }
+.form-group input[type="text"] {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 0.75rem 1rem; border-radius: 8px; font-size: 1rem;
+  transition: border-color 0.2s;
+}
+.form-group input[type="text"]:focus { outline: none; border-color: var(--accent); }
+.form-group input[type="file"] { color: var(--muted); font-size: 0.9rem; }
+.form-check { display: flex; align-items: center; gap: 0.75rem; }
+.form-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.form-check label { font-weight: 600; }
+.form-actions { display: flex; gap: 1rem; margin-top: 2rem; }
+#quill-editor { background: var(--surface2); border-radius: 0 0 8px 8px; min-height: 300px; color: var(--text); }
+.ql-toolbar { background: var(--surface2) !important; border-color: var(--border) !important; border-radius: 8px 8px 0 0 !important; }
+.ql-container { border-color: var(--border) !important; border-radius: 0 0 8px 8px !important; }
+.ql-editor { color: var(--text) !important; font-size: 1rem; }
+.ql-stroke { stroke: var(--muted) !important; }
+.ql-fill { fill: var(--muted) !important; }
+.ql-picker-label { color: var(--muted) !important; }
+</style>
+
+<div class="blog-edit-page">
+  <a href="{{ url_for('blog_admin', site_id=site.id) }}" class="back-link">← Back to Blog</a>
+  <h1>{% if post %}Edit Post{% else %}New Post{% endif %}</h1>
+
+  <form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="body_html" id="body_html_input">
+    <div class="edit-card">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" name="title" value="{{ post.title if post else '' }}" required placeholder="e.g. We Won the District Championship!">
+      </div>
+      <div class="form-group">
+        <label>Cover Image</label>
+        {% if post and post.cover_image %}
+        <img src="{{ img_url(post.cover_image) }}" style="height:80px;border-radius:6px;margin-bottom:0.5rem;display:block;">
+        {% endif %}
+        <input type="file" name="cover_image" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label>Content</label>
+        <div id="quill-editor">{{ post.body_html | safe if post and post.body_html else '' }}</div>
+      </div>
+      <div class="form-check">
+        <input type="checkbox" name="is_published" id="is_published" {% if not post or post.is_published %}checked{% endif %}>
+        <label for="is_published">Publish immediately</label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <a href="{{ url_for('blog_admin', site_id=site.id) }}" class="btn-outline">Cancel</a>
+      <button type="submit" class="btn-primary" id="save-btn">{% if post %}Save Changes{% else %}Publish Post{% endif %}</button>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+const quill = new Quill('#quill-editor', {
+  theme: 'snow',
+  placeholder: 'Write your post here...',
+  modules: {
+    toolbar: [
+      [{ header: [2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link', 'blockquote', 'clean']
+    ]
+  }
+});
+document.querySelector('form').addEventListener('submit', () => {
+  document.getElementById('body_html_input').value = quill.root.innerHTML;
+});
+</script>
+{% endblock %}

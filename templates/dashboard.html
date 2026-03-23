@@ -38,6 +38,7 @@
         {% endif %}
         <div class="site-card-actions">
           <a href="{{ url_for('site_admin', site_id=site.id) }}" class="btn-primary">⚡ Manage</a>
+          <a href="{{ url_for('blog_admin', site_id=site.id) }}" class="btn-secondary">📰 Blog</a>
           <a href="{{ url_for('preview', slug=site.slug) }}" class="btn-outline" target="_blank">Preview</a>
           {% if site.is_published %}
           <a href="{{ url_for('site', slug=site.slug) }}" class="btn-outline" target="_blank">View</a>

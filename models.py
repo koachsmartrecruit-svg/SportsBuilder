@@ -173,3 +173,19 @@ class PageView(db.Model):
     country = db.Column(db.String(100))
     viewed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     website = db.relationship("Website", backref=db.backref("page_view_events", lazy="dynamic", cascade="all, delete-orphan"))
+
+
+class BlogPost(db.Model):
+    """News/blog posts for a website."""
+    __tablename__ = "blog_posts"
+    id = db.Column(db.Integer, primary_key=True)
+    website_id = db.Column(db.Integer, db.ForeignKey("websites.id"), nullable=False)
+    title = db.Column(db.String(300), nullable=False)
+    slug = db.Column(db.String(300), nullable=False)
+    body_html = db.Column(db.Text)
+    cover_image = db.Column(db.String(300))
+    is_published = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    website = db.relationship("Website", backref=db.backref("blog_posts", lazy=True, cascade="all, delete-orphan"))
+    __table_args__ = (db.UniqueConstraint("website_id", "slug", name="uq_post_slug"),)

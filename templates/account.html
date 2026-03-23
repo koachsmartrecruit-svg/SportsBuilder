@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Account — SportsBuilder{% endblock %}
+{% block content %}
+<style>
+.account-page { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem; }
+.account-page h1 { font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 2px; margin-bottom: 0.5rem; }
+.account-page .subtitle { color: var(--muted); margin-bottom: 2.5rem; }
+.account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.account-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem;
+}
+.account-card h2 { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 1.5rem; }
+.form-group { margin-bottom: 1.25rem; }
+.form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-bottom: 0.4rem; }
+.form-group input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 0.65rem 1rem; border-radius: 8px; font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+.form-group input:focus { outline: none; border-color: var(--accent); }
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+.stat-row:last-child { border-bottom: none; }
+.stat-row-label { color: var(--muted); font-size: 0.9rem; }
+.stat-row-value { font-weight: 700; font-size: 1.1rem; }
+.plan-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.3);
+  color: var(--accent); padding: 0.4rem 1rem; border-radius: 20px;
+  font-size: 0.85rem; font-weight: 700;
+}
+.danger-card { border-color: #e74c3c; }
+.danger-card h2 { color: #e74c3c; }
+@media (max-width: 640px) { .account-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="account-page">
+  <h1>Account Settings</h1>
+  <p class="subtitle">Manage your profile and account preferences.</p>
+
+  <div class="account-grid">
+    <!-- Profile -->
+    <div class="account-card">
+      <h2>Profile</h2>
+      <form method="POST" action="{{ url_for('update_email') }}">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" name="email" value="{{ current_user.email }}" required>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;">Save Email</button>
+      </form>
+    </div>
+
+    <!-- Password -->
+    <div class="account-card">
+      <h2>Change Password</h2>
+      <form method="POST" action="{{ url_for('change_password') }}">
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" name="current_password" required>
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" name="new_password" minlength="8" required>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;">Update Password</button>
+      </form>
+    </div>
+
+    <!-- Usage Stats -->
+    <div class="account-card">
+      <h2>Usage</h2>
+      <div class="stat-row">
+        <span class="stat-row-label">Current Plan</span>
+        <span class="plan-badge">⚡ Free</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">Websites Created</span>
+        <span class="stat-row-value">{{ sites|length }} / 1</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">Total Page Views</span>
+        <span class="stat-row-value">{{ total_views }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">Member Since</span>
+        <span class="stat-row-value">{{ current_user.created_at.strftime('%b %Y') }}</span>
+      </div>
+      <div style="margin-top:1.5rem;">
+        <a href="{{ url_for('pricing') }}" class="btn-primary" style="width:100%;display:block;text-align:center;">Upgrade Plan</a>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="account-card danger-card">
+      <h2>Danger Zone</h2>
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem;">
+        Deleting your account is permanent and cannot be undone. All your sites and data will be removed.
+      </p>
+      <button type="button" class="btn-danger" style="width:100%;" onclick="alert('Please contact support to delete your account.')">
+        Delete Account
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

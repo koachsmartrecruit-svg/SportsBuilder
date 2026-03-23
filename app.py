@@ -5,7 +5,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from jinja2 import ChoiceLoader, FileSystemLoader
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Website, Gallery, ContactSubmission, SiteAnalytics, PageView
+from models import db, User, Website, Gallery, ContactSubmission, SiteAnalytics, PageView, BlogPost
 from datetime import datetime
 import secrets
 
@@ -216,7 +216,7 @@ TEMPLATES = {
 def index():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
-    return redirect(url_for("login"))
+    return render_template("landing.html")
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -910,6 +910,118 @@ def api_stats():
     })
 
 
+@app.route("/pricing")
+def pricing():
+    return render_template("pricing.html")
+
+
+@app.route("/account")
+@login_required
+def account():
+    sites = Website.query.filter_by(user_id=current_user.id).all()
+    total_views = 0
+    for s in sites:
+        a = SiteAnalytics.query.filter_by(website_id=s.id).first()
+        if a:
+            total_views += (a.page_views or 0)
+    return render_template("account.html", sites=sites, total_views=total_views)
+
+
+@app.route("/account/update-email", methods=["POST"])
+@login_required
+def update_email():
+    new_email = request.form.get("email", "").strip().lower()
+    if not new_email or not re.match(r"[^@]+@[^@]+\.[^@]+", new_email):
+        flash("Invalid email address.", "error")
+    elif User.query.filter(User.email == new_email, User.id != current_user.id).first():
+        flash("That email is already in use.", "error")
+    else:
+        current_user.email = new_email
+        db.session.commit()
+        flash("Email updated.", "success")
+    return redirect(url_for("account"))
+
+
+# ── Blog / News Routes ────────────────────────────────────────────────────────
+@app.route("/site/<int:site_id>/admin/blog")
+@login_required
+def blog_admin(site_id):
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    posts = BlogPost.query.filter_by(website_id=site_id).order_by(BlogPost.created_at.desc()).all()
+    return render_template("blog_admin.html", site=site, posts=posts)
+
+
+@app.route("/site/<int:site_id>/admin/blog/new", methods=["GET", "POST"])
+@login_required
+def blog_new(site_id):
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        body_html = request.form.get("body_html", "").strip()
+        is_published = request.form.get("is_published") == "on"
+        if not title:
+            flash("Title is required.", "error")
+            return render_template("blog_edit.html", site=site, post=None)
+        base_slug = slugify(title)
+        slug = base_slug
+        counter = 1
+        while BlogPost.query.filter_by(website_id=site_id, slug=slug).first():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        cover = save_upload(request.files.get("cover_image")) if "cover_image" in request.files else None
+        post = BlogPost(website_id=site_id, title=title, slug=slug,
+                        body_html=body_html, cover_image=cover, is_published=is_published)
+        db.session.add(post)
+        db.session.commit()
+        flash("Post published.", "success")
+        return redirect(url_for("blog_admin", site_id=site_id))
+    return render_template("blog_edit.html", site=site, post=None)
+
+
+@app.route("/site/<int:site_id>/admin/blog/<int:post_id>/edit", methods=["GET", "POST"])
+@login_required
+def blog_edit(site_id, post_id):
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    post = BlogPost.query.filter_by(id=post_id, website_id=site_id).first_or_404()
+    if request.method == "POST":
+        post.title = request.form.get("title", post.title).strip()
+        post.body_html = request.form.get("body_html", "").strip()
+        post.is_published = request.form.get("is_published") == "on"
+        cover = save_upload(request.files.get("cover_image")) if "cover_image" in request.files else None
+        if cover:
+            post.cover_image = cover
+        post.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash("Post updated.", "success")
+        return redirect(url_for("blog_admin", site_id=site_id))
+    return render_template("blog_edit.html", site=site, post=post)
+
+
+@app.route("/site/<int:site_id>/admin/blog/<int:post_id>/delete", methods=["POST"])
+@login_required
+def blog_delete(site_id, post_id):
+    site = Website.query.filter_by(id=site_id, user_id=current_user.id).first_or_404()
+    post = BlogPost.query.filter_by(id=post_id, website_id=site_id).first_or_404()
+    db.session.delete(post)
+    db.session.commit()
+    flash("Post deleted.", "info")
+    return redirect(url_for("blog_admin", site_id=site_id))
+
+
+@app.route("/site/<slug>/news")
+def site_news(slug):
+    website = Website.query.filter_by(slug=slug, is_published=True).first_or_404()
+    posts = BlogPost.query.filter_by(website_id=website.id, is_published=True).order_by(BlogPost.created_at.desc()).all()
+    return render_template("site_news.html", site=website, posts=posts)
+
+
+@app.route("/site/<slug>/news/<post_slug>")
+def site_post(slug, post_slug):
+    website = Website.query.filter_by(slug=slug, is_published=True).first_or_404()
+    post = BlogPost.query.filter_by(website_id=website.id, slug=post_slug, is_published=True).first_or_404()
+    return render_template("site_post.html", site=website, post=post)
+
+
 # ── Error Handlers ────────────────────────────────────────────────────────────
 @app.errorhandler(404)
 def not_found(e):
@@ -1042,6 +1154,20 @@ def run_migrations():
             conn.execute(text(
                 "CREATE INDEX IF NOT EXISTS idx_page_views_viewed_at ON page_views(viewed_at)"
             ))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS blog_posts (
+                    id SERIAL PRIMARY KEY,
+                    website_id INTEGER NOT NULL REFERENCES websites(id) ON DELETE CASCADE,
+                    title VARCHAR(300) NOT NULL,
+                    slug VARCHAR(300) NOT NULL,
+                    body_html TEXT,
+                    cover_image VARCHAR(300),
+                    is_published BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(website_id, slug)
+                )
+            """))
             conn.commit()
 
 with app.app_context():

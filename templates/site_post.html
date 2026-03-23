@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ post.title }} — {{ site.site_name }}</title>
+  <meta name="description" content="{{ post.title }} — {{ site.site_name }}">
+  {% if post.cover_image %}<meta property="og:image" content="{{ img_url(post.cover_image) }}">{% endif %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family={{ (site.font_family or 'Inter') | replace(' ', '+') }}:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: {{ site.primary_color or '#e63946' }}; --secondary: {{ site.secondary_color or '#1d3557' }}; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: '{{ site.font_family or 'Inter' }}', sans-serif; background: #f8f9fc; color: #1a1a2e; }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 5%; background: var(--secondary); position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand { color: #fff; font-weight: 800; font-size: 1.3rem; text-decoration: none; }
+    .nav-back { color: rgba(255,255,255,0.7); font-size: 0.9rem; text-decoration: none; }
+    .nav-back:hover { color: #fff; }
+    .post-hero {
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      padding: 4rem 5%; color: #fff;
+    }
+    .post-hero-inner { max-width: 760px; margin: 0 auto; }
+    .post-date { opacity: 0.7; font-size: 0.9rem; margin-bottom: 1rem; }
+    .post-hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.2; }
+    .post-cover-img { max-width: 760px; margin: 0 auto; display: block; border-radius: 12px; margin-top: -2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+    .post-body-wrap { max-width: 760px; margin: 3rem auto; padding: 0 5%; }
+    .post-content {
+      background: #fff; border-radius: 12px; padding: 2.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06); line-height: 1.8; font-size: 1.05rem;
+    }
+    .post-content h2 { font-size: 1.5rem; margin: 2rem 0 0.75rem; }
+    .post-content h3 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; }
+    .post-content p { margin-bottom: 1rem; }
+    .post-content ul, .post-content ol { margin: 1rem 0 1rem 1.5rem; }
+    .post-content li { margin-bottom: 0.4rem; }
+    .post-content a { color: var(--primary); }
+    .post-content blockquote {
+      border-left: 4px solid var(--primary); padding: 0.75rem 1.5rem;
+      background: #f8f9fc; margin: 1.5rem 0; color: #555; font-style: italic;
+    }
+    .back-link { display: inline-block; margin-top: 2rem; color: var(--primary); font-weight: 600; text-decoration: none; }
+    footer { text-align: center; padding: 2rem; color: #888; font-size: 0.85rem; border-top: 1px solid #e2e8f0; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/site/{{ site.slug }}" class="nav-brand">{{ site.site_name }}</a>
+  <a href="/site/{{ site.slug }}/news" class="nav-back">← All News</a>
+</nav>
+<div class="post-hero">
+  <div class="post-hero-inner">
+    <div class="post-date">{{ post.created_at.strftime('%B %d, %Y') }}</div>
+    <h1>{{ post.title }}</h1>
+  </div>
+</div>
+{% if post.cover_image %}
+<img src="{{ img_url(post.cover_image) }}" alt="{{ post.title }}" class="post-cover-img">
+{% endif %}
+<div class="post-body-wrap">
+  <div class="post-content">
+    {{ post.body_html | safe if post.body_html else '<p>No content.</p>' }}
+  </div>
+  <a href="/site/{{ site.slug }}/news" class="back-link">← Back to News</a>
+</div>
+<footer>© {{ site.site_name }}</footer>
+</body>
+</html>

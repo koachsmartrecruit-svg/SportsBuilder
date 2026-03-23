@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Blog — {{ site.site_name }}{% endblock %}
+{% block content %}
+<style>
+.blog-admin { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem; }
+.blog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+.blog-header h1 { font-family: var(--font-display); font-size: 2rem; letter-spacing: 2px; }
+.blog-header .back-link { color: var(--muted); font-size: 0.9rem; display: block; margin-bottom: 0.25rem; }
+.posts-list { display: flex; flex-direction: column; gap: 1rem; }
+.post-item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;
+  gap: 1rem; flex-wrap: wrap;
+}
+.post-item-info h3 { font-weight: 700; margin-bottom: 0.25rem; }
+.post-item-meta { color: var(--muted); font-size: 0.85rem; display: flex; gap: 1rem; align-items: center; }
+.post-status-pub { color: #2ecc71; font-weight: 600; }
+.post-status-draft { color: var(--muted); font-weight: 600; }
+.post-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+.empty-state .empty-icon { font-size: 4rem; margin-bottom: 1rem; }
+</style>
+
+<div class="blog-admin">
+  <div class="blog-header">
+    <div>
+      <a href="{{ url_for('site_admin', site_id=site.id) }}" class="back-link">← Back to Admin</a>
+      <h1>Blog / News — {{ site.site_name }}</h1>
+    </div>
+    <a href="{{ url_for('blog_new', site_id=site.id) }}" class="btn-primary">+ New Post</a>
+  </div>
+
+  {% if posts %}
+  <div class="posts-list">
+    {% for post in posts %}
+    <div class="post-item">
+      <div class="post-item-info">
+        <h3>{{ post.title }}</h3>
+        <div class="post-item-meta">
+          <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
+          {% if post.is_published %}
+          <span class="post-status-pub">● Published</span>
+          {% else %}
+          <span class="post-status-draft">● Draft</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="post-actions">
+        <a href="{{ url_for('site_post', slug=site.slug, post_slug=post.slug) }}" class="btn-secondary" target="_blank">View</a>
+        <a href="{{ url_for('blog_edit', site_id=site.id, post_id=post.id) }}" class="btn-secondary">Edit</a>
+        <form method="POST" action="{{ url_for('blog_delete', site_id=site.id, post_id=post.id) }}" onsubmit="return confirm('Delete this post?')">
+          <button type="submit" class="btn-danger">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📰</div>
+    <h3>No posts yet</h3>
+    <p>Write your first news post or match report.</p>
+    <a href="{{ url_for('blog_new', site_id=site.id) }}" class="btn-primary" style="margin-top:1rem;display:inline-block;">Write First Post</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

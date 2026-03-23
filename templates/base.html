@@ -17,8 +17,9 @@
     <a href="{{ url_for('dashboard') }}" class="nav-brand">&#9889; SportsBuilder</a>
     <div class="nav-links">
       <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('pricing') }}">Pricing</a>
       <a href="{{ url_for('create_site') }}" class="btn-nav">+ New Site</a>
-      <span class="nav-user">{{ current_user.email }}</span>
+      <a href="{{ url_for('account') }}" class="nav-user" title="Account settings">{{ current_user.email }}</a>
       <a href="{{ url_for('logout') }}" class="nav-logout">Logout</a>
     </div>
   </nav>
